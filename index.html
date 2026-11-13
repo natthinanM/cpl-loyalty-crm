@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPLEX Loyalty CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;700;900&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --navy:#10223E; --navy-light:#1a3258; --blue:#3F98D8; --orange:#EA9243;
+    --grey-900:#333333; --grey-700:#666666; --grey-400:#999999; --grey-200:#CCCCCC; --grey-100:#F2F4F7; --white:#FFFFFF;
+    --radius:14px; --shadow:0 2px 10px rgba(16,34,62,0.08); --shadow-md:0 8px 24px rgba(16,34,62,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:'Sarabun','Maven Pro',sans-serif;background:var(--grey-100);color:var(--grey-900);min-height:100vh;}
+  #app{display:flex;min-height:100vh;}
+
+  .sidebar{width:230px;background:linear-gradient(180deg,var(--navy) 0%, #0c1b33 100%);color:#fff;padding:24px 18px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+  .logo{font-family:'Maven Pro',sans-serif;font-weight:900;font-size:21px;letter-spacing:0.5px;margin-bottom:4px;display:flex;align-items:baseline;gap:2px;}
+  .logo .l1{color:var(--blue);} .logo .rest{color:#fff;}
+  .tagline{font-size:11px;color:var(--blue);margin-bottom:28px;letter-spacing:0.3px;font-family:'Maven Pro',sans-serif;}
+  .nav-item{padding:10px 12px;border-radius:10px;cursor:pointer;font-size:14.5px;font-weight:500;display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.78);transition:background .15s, color .15s;user-select:none;}
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:0.85;}
+  .nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .nav-item.active{background:var(--blue);color:#fff;}
+  .nav-item.active svg{opacity:1;}
+  .sidebar-foot{margin-top:auto;font-size:11px;color:rgba(255,255,255,0.45);line-height:1.6;}
+
+  .main{flex:1;min-width:0;padding:26px 32px 60px;}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap;gap:14px;}
+  h1{font-family:'Maven Pro',sans-serif;font-size:24px;font-weight:700;color:var(--navy);margin:0 0 4px;}
+  .subtitle{color:var(--grey-700);font-size:13.5px;margin:0;}
+  .btn{border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:transform .12s, box-shadow .12s;font-family:'Sarabun',sans-serif;}
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--orange);color:#fff;box-shadow:0 4px 12px rgba(234,146,67,0.35);}
+  .btn-primary:hover{box-shadow:0 6px 16px rgba(234,146,67,0.45);}
+  .btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--grey-200);}
+  .btn-outline:hover{border-color:var(--blue);color:var(--blue);}
+  .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:8px;}
+  .btn-ghost{background:transparent;color:var(--grey-700);}
+  .btn-ghost:hover{background:var(--grey-100);}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .stat-card{background:#fff;border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);border-left:4px solid var(--blue);position:relative;overflow:hidden;}
+  .stat-card.orange{border-left-color:var(--orange);} .stat-card.navy{border-left-color:var(--navy);} .stat-card.green{border-left-color:#2EA86A;}
+  .stat-label{font-size:12px;color:var(--grey-700);margin-bottom:6px;font-weight:600;letter-spacing:.2px;}
+  .stat-value{font-family:'Maven Pro',sans-serif;font-size:26px;font-weight:700;color:var(--navy);}
+  .stat-sub{font-size:11.5px;color:var(--grey-400);margin-top:4px;}
+  .curve-deco{position:absolute;right:-60px;bottom:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--blue), var(--navy));opacity:0.07;pointer-events:none;}
+
+  .panel{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:20px;}
+  .panel-title{font-weight:700;font-size:15px;color:var(--navy);margin:0 0 14px;font-family:'Maven Pro',sans-serif;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;padding:10px 12px;color:var(--grey-700);font-weight:600;font-size:12px;border-bottom:2px solid var(--grey-100);white-space:nowrap;}
+  td{padding:11px 12px;border-bottom:1px solid var(--grey-100);vertical-align:middle;}
+  tr:hover td{background:#fafbfc;}
+  .pill{border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;display:inline-block;}
+  .pill-blue{background:#e2eef8;color:#2a6f9e;} .pill-orange{background:#fdeedd;color:#b5661d;} .pill-green{background:#e2f5ea;color:#1f7a47;} .pill-grey{background:#eceff2;color:var(--grey-700);}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--grey-400);}
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{background:none;border:none;cursor:pointer;padding:5px;border-radius:6px;color:var(--grey-700);display:flex;}
+  .icon-btn:hover{background:var(--grey-100);color:var(--navy);}
+  .icon-btn svg{width:15px;height:15px;}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+  .search-box{flex:1;min-width:180px;position:relative;}
+  .search-box input{width:100%;padding:9px 12px 9px 34px;border-radius:10px;border:1.5px solid var(--grey-200);font-size:13.5px;font-family:'Sarabun',sans-serif;}
+  .search-box input:focus{outline:none;border-color:var(--blue);}
+  .search-box svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--grey-400);}
+  select.filter-select{padding:9px 10px;border-radius:10px;border:1.5px solid var(--grey-200);font-size:13px;color:var(--grey-700);font-family:'Sarabun',sans-serif;background:#fff;}
+
+  .overlay{position:fixed;inset:0;background:rgba(16,34,62,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md);}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--grey-100);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;border-radius:16px 16px 0 0;}
+  .modal-head h2{font-family:'Maven Pro',sans-serif;font-size:17px;color:var(--navy);margin:0;}
+  .modal-body{padding:20px 22px;}
+  .form-row{margin-bottom:14px;}
+  .form-row label{display:block;font-size:12.5px;font-weight:600;color:var(--grey-700);margin-bottom:5px;}
+  .form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 11px;border-radius:9px;border:1.5px solid var(--grey-200);font-size:13.5px;font-family:'Sarabun',sans-serif;}
+  .form-row input:focus,.form-row select:focus,.form-row textarea:focus{outline:none;border-color:var(--blue);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--grey-100);display:flex;justify-content:flex-end;gap:10px;}
+  .close-x{background:none;border:none;cursor:pointer;color:var(--grey-400);font-size:20px;line-height:1;}
+  .close-x:hover{color:var(--navy);}
+  .cust-summary{background:var(--grey-100);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+  .cust-summary .nm{font-weight:700;color:var(--navy);font-size:15px;}
+  .cust-summary .pts{font-family:'Maven Pro',sans-serif;font-weight:700;color:var(--orange);font-size:20px;}
+
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;box-shadow:var(--shadow-md);opacity:0;transform:translateY(10px);transition:all .25s;z-index:100;display:flex;align-items:center;gap:8px;max-width:320px;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .empty-state{font-size:12.5px;color:var(--grey-400);text-align:center;padding:30px;}
+
+  .login-screen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:200;}
+  .login-card{background:#fff;border-radius:18px;padding:36px 34px;width:100%;max-width:360px;box-shadow:var(--shadow-md);}
+  .login-card .logo{color:var(--navy);margin-bottom:4px;}
+  .login-card .logo .rest{color:var(--navy);}
+  .login-card p{color:var(--grey-700);font-size:13px;margin:0 0 20px;}
+  .login-card input{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--grey-200);font-size:14px;font-family:'Sarabun',sans-serif;margin-bottom:12px;}
+  .login-card .btn{width:100%;justify-content:center;}
+  .login-err{color:#c23b3b;font-size:12.5px;margin:-4px 0 12px;display:none;}
+
+  @media (max-width:900px){
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .sidebar{width:72px;padding:20px 10px;}
+    .logo, .tagline, .nav-item span{display:none;}
+    .nav-item{justify-content:center;}
+    .main{padding:20px 16px 50px;}
+    .form-grid{grid-template-columns:1fr;}
+  }
+  ::-webkit-scrollbar{height:8px;width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--grey-200);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- STAFF PIN GATE (lightweight, client-side — see README for real auth upgrade) -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="logo"><span class="rest">CP</span><span class="l1" style="color:var(--blue);">L</span><span class="rest">EX</span></div>
+    <p>ระบบลูกค้าสะสมแต้ม — ใส่รหัสพนักงานเพื่อเข้าใช้งาน</p>
+    <input type="password" id="pin-input" placeholder="รหัสผ่าน" autocomplete="off">
+    <div class="login-err" id="login-err">รหัสผ่านไม่ถูกต้อง</div>
+    <button class="btn btn-primary" onclick="tryLogin()">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <div class="sidebar">
+    <div class="logo"><span class="rest">CP</span><span class="l1">L</span><span class="rest">EX</span></div>
+    <div class="tagline">ระบบลูกค้าสะสมแต้ม</div>
+    <div class="nav-item active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span>แดชบอร์ด</span>
+    </div>
+    <div class="nav-item" data-view="customers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+      <span>ลูกค้า</span>
+    </div>
+    <div class="nav-item" data-view="transactions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M3 5l6 7v7l6-3v-4l6-7"/></svg>
+      <span>รายการแต้ม</span>
+    </div>
+    <div class="sidebar-foot">
+      CPLEX Loyalty CRM<br>
+      <span id="sync-badge" style="display:inline-flex;align-items:center;gap:5px;margin-top:4px;">
+        <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#999;display:inline-block;"></span>
+        <span id="sync-text">กำลังเชื่อมต่อฐานข้อมูล…</span>
+      </span>
+      <div style="margin-top:10px;"><a href="#" onclick="logout();return false;" style="color:rgba(255,255,255,0.5);font-size:10.5px;">ออกจากระบบ</a></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div class="view" id="view-dashboard">
+      <div class="topbar">
+        <div>
+          <h1>แดชบอร์ดลูกค้าสะสมแต้ม</h1>
+          <p class="subtitle">ข้อมูลจาก Supabase — อัปเดตแบบเรียลไทม์</p>
+        </div>
+        <button class="btn btn-primary" onclick="openTxModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          เพิ่มรายการแต้ม
+        </button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card navy"><div class="stat-label">ลูกค้าทั้งหมด</div><div class="stat-value" id="s-customers">0</div><div class="stat-sub">บัญชีที่มีกิจกรรม</div><div class="curve-deco"></div></div>
+        <div class="stat-card"><div class="stat-label">แต้มสะสมคงเหลือรวม</div><div class="stat-value" id="s-points">0</div><div class="stat-sub">แต้มทั้งระบบ</div><div class="curve-deco"></div></div>
+        <div class="stat-card orange"><div class="stat-label">ธุรกรรมทั้งหมด</div><div class="stat-value" id="s-tx">0</div><div class="stat-sub">รายการให้/หักแต้ม</div><div class="curve-deco"></div></div>
+        <div class="stat-card green"><div class="stat-label">ลูกค้าทำบัตรใหม่</div><div class="stat-value" id="s-newcard">0</div><div class="stat-sub">รายการ "โบนัสเมื่อทำบัตร"</div><div class="curve-deco"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">แต้มแยกตามประเภท</div>
+        <div id="type-bars"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">ลูกค้าแต้มสูงสุด 5 อันดับ</div>
+        <table><thead><tr><th>ชื่อลูกค้า</th><th>ชื่อ-นามสกุล</th><th>แต้มรวม</th><th>จำนวนรายการ</th></tr></thead>
+        <tbody id="top-customers-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="view" id="view-customers" style="display:none;">
+      <div class="topbar">
+        <div><h1>ลูกค้า</h1><p class="subtitle">สรุปแต้มสะสมรวมต่อลูกค้าหนึ่งคน</p></div>
+        <button class="btn btn-primary" onclick="openTxModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          เพิ่มรายการแต้ม
+        </button>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input type="text" id="cust-search" placeholder="ค้นหาชื่อลูกค้า, ID ผู้ใช้...">
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV('customers')">ส่งออก CSV</button>
+      </div>
+      <div class="panel" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead><tr><th>ชื่อลูกค้า (ออนไลน์)</th><th>ชื่อ-นามสกุล</th><th>ID ผู้ใช้</th><th>แต้มสะสม</th><th>จำนวนรายการ</th><th></th></tr></thead>
+          <tbody id="customers-body"></tbody>
+        </table>
+        <div id="customers-empty" class="empty-state" style="display:none;">ไม่พบข้อมูลลูกค้า</div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="view" id="view-transactions" style="display:none;">
+      <div class="topbar">
+        <div><h1>รายการแต้ม</h1><p class="subtitle">ประวัติธุรกรรมแต้มทั้งหมด เรียงล่าสุดก่อน</p></div>
+        <button class="btn btn-primary" onclick="openTxModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          เพิ่มรายการแต้ม
+        </button>
+      </div>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input type="text" id="tx-search" placeholder="ค้นหาชื่อลูกค้า, ID ผู้ใช้...">
+        </div>
+        <select class="filter-select" id="tx-filter-type"><option value="">ประเภททั้งหมด</option></select>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV('transactions')">ส่งออก CSV</button>
+      </div>
+      <div class="panel" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead><tr><th>วันที่</th><th>ชื่อลูกค้า</th><th>ID ผู้ใช้</th><th>แต้ม</th><th>ประเภท</th><th></th></tr></thead>
+          <tbody id="tx-body"></tbody>
+        </table>
+        <div id="tx-empty" class="empty-state" style="display:none;">ไม่มีรายการ</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER DETAIL MODAL -->
+<div class="overlay" id="cust-overlay">
+  <div class="modal">
+    <div class="modal-head"><h2 id="cust-modal-title">รายละเอียดลูกค้า</h2><button class="close-x" onclick="closeCustModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="cust-summary">
+        <div class="nm" id="cust-name">-</div>
+        <div style="font-size:11.5px;color:var(--grey-400);margin:2px 0 8px;" id="cust-id">-</div>
+        <div class="pts" id="cust-points">0 แต้ม</div>
+      </div>
+      <div class="panel-title" style="margin-bottom:8px;">ประวัติรายการ</div>
+      <table><thead><tr><th>วันที่</th><th>แต้ม</th><th>ประเภท</th></tr></thead><tbody id="cust-tx-body"></tbody></table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeCustModal()">ปิด</button>
+      <button class="btn btn-primary" id="cust-addtx-btn">เพิ่มแต้มให้ลูกค้านี้</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT TRANSACTION MODAL -->
+<div class="overlay" id="tx-overlay">
+  <div class="modal">
+    <div class="modal-head"><h2 id="tx-modal-title">เพิ่มรายการแต้ม</h2><button class="close-x" onclick="closeTxModal()">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="tx-id">
+      <div class="form-row">
+        <label>ชื่อลูกค้า (ออนไลน์) *</label>
+        <input type="text" id="t-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
+        <datalist id="customer-names-list"></datalist>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>ID ผู้ใช้</label>
+          <input type="text" id="t-userid" placeholder="ID ผู้ใช้ของลูกค้า (ถ้ามี)">
+        </div>
+        <div class="form-row">
+          <label>ชื่อ-นามสกุลลูกค้า</label>
+          <input type="text" id="t-fullname" placeholder="ชื่อ-นามสกุลจริง (ถ้าทราบ)">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>แต้ม *</label>
+          <input type="number" id="t-points" placeholder="เช่น 2 หรือ -1 สำหรับหักแต้ม">
+        </div>
+        <div class="form-row">
+          <label>วันที่</label>
+          <input type="date" id="t-date">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>ประเภทแต้ม *</label>
+        <select id="t-type">
+          <option value="โบนัสเมื่อทำบัตร">โบนัสเมื่อทำบัตร</option>
+          <option value="ส่งสินค้า">ส่งสินค้า</option>
+          <option value="__custom__">อื่นๆ (ระบุเอง)</option>
+        </select>
+        <input type="text" id="t-type-custom" placeholder="ระบุประเภทแต้ม" style="margin-top:8px;display:none;">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="tx-delete-btn" onclick="deleteTx()" style="display:none;margin-right:auto;color:#c23b3b;">ลบรายการ</button>
+      <button class="btn btn-outline" onclick="closeTxModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveTx()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+// Public Supabase project URL + publishable (anon) key.
+// Safe to expose client-side by design — actual security is enforced by
+// Row Level Security policies on the `loyalty_transactions` table.
+const SUPABASE_URL = 'https://kcfdakdhswvcjunnqvts.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ser6peEp7WnGLxD2rgvztg_oafJsYYn';
+const TABLE = 'loyalty_transactions';
+
+// Lightweight staff PIN gate. This is NOT real authentication — it only hides
+// the UI from casual visitors. Writes are still protected solely by Supabase
+// RLS. See README.md for how to upgrade to real Supabase Auth + per-user RLS.
+const STAFF_PIN = 'cplex2026';
+
+const TYPE_PILL = {'โบนัสเมื่อทำบัตร':'pill-green','ส่งสินค้า':'pill-blue'};
+
+/* ============ STATE ============ */
+let supa = null;
+let txs = [];
+let currentView = 'dashboard';
+
+/* ============ UTIL ============ */
+function uid(){ return 't' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+function escapeHtml(str){ return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtNum(n){ return (Number(n)||0).toLocaleString('th-TH'); }
+function fmtDate(iso){ if(!iso) return '-'; const dt = new Date(iso+'T00:00:00'); if(isNaN(dt)) return escapeHtml(iso); return dt.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'}); }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function customerKey(t){ return (t.userId && t.userId.trim()) ? t.userId.trim() : ('name:'+ (t.customerName||'').trim().toLowerCase()); }
+
+/* ============ STAFF LOGIN GATE ============ */
+function tryLogin(){
+  const val = document.getElementById('pin-input').value;
+  if(val === STAFF_PIN){
+    sessionStorage.setItem('cplex_staff_ok', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    boot();
+  }else{
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function logout(){
+  sessionStorage.removeItem('cplex_staff_ok');
+  location.reload();
+}
+document.getElementById('pin-input').addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+
+/* ============ SUPABASE ============ */
+function rowToTx(row){
+  return {
+    id: row.id,
+    customerName: row.customer_name || '',
+    userId: row.user_id || '',
+    fullName: row.full_name || '',
+    points: Number(row.points)||0,
+    type: row.type || '',
+    date: row.tx_date || '',
+  };
+}
+function txToRow(t){
+  return {
+    customer_name: t.customerName || '',
+    user_id: t.userId || '',
+    full_name: t.fullName || '',
+    points: Number(t.points)||0,
+    type: t.type || '',
+    tx_date: t.date || null,
+  };
+}
+function setSyncStatus(state, text){
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-text');
+  const colors = {connecting:'#999999', synced:'#2EA86A', error:'#c23b3b'};
+  dot.style.background = colors[state] || '#999';
+  label.textContent = text;
+}
+async function loadFromSupabase(){
+  const { data, error } = await supa.from(TABLE).select('*').order('created_at', {ascending:false});
+  if(error) throw error;
+  return (data||[]).map(rowToTx);
+}
+async function insertTx(t){
+  const { data, error } = await supa.from(TABLE).insert(txToRow(t)).select().single();
+  if(error) throw error;
+  return rowToTx(data);
+}
+async function updateTx(id, t){
+  const { error } = await supa.from(TABLE).update(txToRow(t)).eq('id', id);
+  if(error) throw error;
+}
+async function deleteTxRow(id){
+  const { error } = await supa.from(TABLE).delete().eq('id', id);
+  if(error) throw error;
+}
+async function boot(){
+  try{
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    setSyncStatus('connecting', 'กำลังโหลดข้อมูล…');
+    txs = await loadFromSupabase();
+    setSyncStatus('synced', 'เชื่อมต่อ Supabase แล้ว');
+  }catch(e){
+    console.error(e);
+    setSyncStatus('error', 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ');
+    toast('เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ' + (e.message||e));
+  }
+  initHashView();
+  renderAll();
+}
+
+/* ============ AGGREGATION ============ */
+function buildCustomers(){
+  const map = new Map();
+  txs.forEach(t=>{
+    const key = customerKey(t);
+    if(!map.has(key)) map.set(key, {key, customerName:'', fullName:'', userId:'', points:0, count:0, txs:[]});
+    const c = map.get(key);
+    if(t.customerName) c.customerName = t.customerName;
+    if(t.fullName) c.fullName = t.fullName;
+    if(t.userId) c.userId = t.userId;
+    c.points += Number(t.points)||0;
+    c.count += 1;
+    c.txs.push(t);
+  });
+  return Array.from(map.values());
+}
+
+/* ============ NAVIGATION ============ */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    currentView = item.dataset.view;
+    document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+    document.getElementById('view-'+currentView).style.display='block';
+    renderAll();
+    if(location.hash.replace('#','') !== currentView) history.replaceState(null,'','#'+currentView);
+  });
+});
+function initHashView(){
+  const h = (location.hash||'').replace('#','');
+  const valid = ['dashboard','customers','transactions'];
+  currentView = valid.includes(h) ? h : 'dashboard';
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active', i.dataset.view===currentView));
+  document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+  const el = document.getElementById('view-'+currentView);
+  if(el) el.style.display='block';
+}
+
+/* ============ RENDER: DASHBOARD ============ */
+function renderDashboard(){
+  const customers = buildCustomers();
+  const totalPoints = txs.reduce((s,t)=>s+Number(t.points||0),0);
+  const newCardCount = txs.filter(t=>t.type==='โบนัสเมื่อทำบัตร').length;
+
+  document.getElementById('s-customers').textContent = fmtNum(customers.length);
+  document.getElementById('s-points').textContent = fmtNum(totalPoints);
+  document.getElementById('s-tx').textContent = fmtNum(txs.length);
+  document.getElementById('s-newcard').textContent = fmtNum(newCardCount);
+
+  const typeMap = new Map();
+  txs.forEach(t=>{
+    const key = t.type || 'ไม่ระบุ';
+    if(!typeMap.has(key)) typeMap.set(key, {count:0, points:0});
+    const o = typeMap.get(key);
+    o.count += 1; o.points += Number(t.points||0);
+  });
+  const maxPts = Math.max(1, ...Array.from(typeMap.values()).map(o=>o.points));
+  const colors = ['#3F98D8','#EA9243','#10223E','#2EA86A','#999999'];
+  let ci = 0;
+  document.getElementById('type-bars').innerHTML = Array.from(typeMap.entries()).map(([type,o])=>{
+    const pct = Math.max(3, Math.round(o.points/maxPts*100));
+    const color = colors[ci++ % colors.length];
+    return `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+        <span style="font-weight:600;color:var(--navy);">${escapeHtml(type)} <span style="color:var(--grey-400);font-weight:400;">(${o.count} รายการ)</span></span>
+        <span style="color:var(--grey-700);">${fmtNum(o.points)} แต้ม</span>
+      </div>
+      <div style="background:var(--grey-100);border-radius:8px;height:10px;overflow:hidden;">
+        <div style="background:${color};width:${pct}%;height:100%;border-radius:8px;"></div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state">ยังไม่มีข้อมูล</div>';
+
+  const top = [...customers].sort((a,b)=>b.points-a.points).slice(0,5);
+  document.getElementById('top-customers-body').innerHTML = top.map(c=>`
+    <tr>
+      <td><strong>${escapeHtml(c.customerName||'-')}</strong></td>
+      <td>${escapeHtml(c.fullName||'-')}</td>
+      <td>${fmtNum(c.points)}</td>
+      <td>${c.count}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" style="color:var(--grey-400);text-align:center;">ยังไม่มีข้อมูล</td></tr>';
+}
+
+/* ============ RENDER: CUSTOMERS ============ */
+function renderCustomers(){
+  const q = (document.getElementById('cust-search').value||'').trim().toLowerCase();
+  let customers = buildCustomers();
+  if(q){
+    customers = customers.filter(c=> [c.customerName,c.fullName,c.userId].join(' ').toLowerCase().includes(q));
+  }
+  customers.sort((a,b)=>b.points-a.points);
+  document.getElementById('customers-empty').style.display = customers.length? 'none':'block';
+  document.getElementById('customers-body').innerHTML = customers.map(c=>`
+    <tr>
+      <td><strong>${escapeHtml(c.customerName||'-')}</strong></td>
+      <td>${escapeHtml(c.fullName||'-')}</td>
+      <td><span class="mono" title="${escapeHtml(c.userId)}">${escapeHtml((c.userId||'-').slice(0,14))}${c.userId && c.userId.length>14?'…':''}</span></td>
+      <td><strong style="color:var(--orange);">${fmtNum(c.points)}</strong></td>
+      <td>${c.count}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openCustModal('${encodeURIComponent(c.key)}')">ดูรายละเอียด</button></td>
+    </tr>
+  `).join('');
+}
+
+/* ============ RENDER: TRANSACTIONS ============ */
+function populateTypeFilter(){
+  const sel = document.getElementById('tx-filter-type');
+  const types = Array.from(new Set(txs.map(t=>t.type).filter(Boolean)));
+  const current = sel.value;
+  sel.innerHTML = '<option value="">ประเภททั้งหมด</option>' + types.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  sel.value = current;
+}
+function renderTransactions(){
+  const q = (document.getElementById('tx-search').value||'').trim().toLowerCase();
+  const typeF = document.getElementById('tx-filter-type').value;
+  let list = [...txs];
+  if(typeF) list = list.filter(t=>t.type===typeF);
+  if(q) list = list.filter(t=> [t.customerName,t.userId,t.fullName].join(' ').toLowerCase().includes(q));
+  list.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  document.getElementById('tx-empty').style.display = list.length? 'none':'block';
+  document.getElementById('tx-body').innerHTML = list.map(t=>`
+    <tr>
+      <td>${fmtDate(t.date)}</td>
+      <td><strong>${escapeHtml(t.customerName||'-')}</strong>${t.fullName? '<br><span style="color:var(--grey-400);font-size:11.5px;">'+escapeHtml(t.fullName)+'</span>':''}</td>
+      <td><span class="mono">${escapeHtml((t.userId||'-').slice(0,16))}${t.userId && t.userId.length>16?'…':''}</span></td>
+      <td style="font-weight:700;color:${Number(t.points)<0?'#c23b3b':'var(--navy)'};">${Number(t.points)>0?'+':''}${fmtNum(t.points)}</td>
+      <td><span class="pill ${TYPE_PILL[t.type]||'pill-grey'}">${escapeHtml(t.type||'-')}</span></td>
+      <td><button class="icon-btn" title="แก้ไข" onclick="openTxModal('${t.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button></td>
+    </tr>
+  `).join('');
+}
+
+/* ============ CUSTOMER DETAIL MODAL ============ */
+let activeCustKey = null;
+function openCustModal(encodedKey){
+  activeCustKey = decodeURIComponent(encodedKey);
+  const c = buildCustomers().find(x=>x.key===activeCustKey);
+  if(!c) return;
+  document.getElementById('cust-name').textContent = c.customerName || c.fullName || '(ไม่ทราบชื่อ)';
+  document.getElementById('cust-id').textContent = c.userId ? ('ID: '+c.userId) : 'ไม่มี ID ผู้ใช้';
+  document.getElementById('cust-points').textContent = fmtNum(c.points) + ' แต้ม';
+  const sorted = [...c.txs].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  document.getElementById('cust-tx-body').innerHTML = sorted.map(t=>`
+    <tr>
+      <td>${fmtDate(t.date)}</td>
+      <td style="font-weight:700;color:${Number(t.points)<0?'#c23b3b':'var(--navy)'};">${Number(t.points)>0?'+':''}${fmtNum(t.points)}</td>
+      <td><span class="pill ${TYPE_PILL[t.type]||'pill-grey'}">${escapeHtml(t.type||'-')}</span></td>
+    </tr>
+  `).join('') || '<tr><td colspan="3" style="color:var(--grey-400);text-align:center;">ไม่มีประวัติ</td></tr>';
+  document.getElementById('cust-overlay').classList.add('open');
+  document.getElementById('cust-addtx-btn').onclick = ()=>{
+    closeCustModal();
+    openTxModal(null, {customerName:c.customerName, userId:c.userId, fullName:c.fullName});
+  };
+}
+function closeCustModal(){ document.getElementById('cust-overlay').classList.remove('open'); }
+document.getElementById('cust-overlay').addEventListener('click', e=>{ if(e.target.id==='cust-overlay') closeCustModal(); });
+
+/* ============ ADD/EDIT TRANSACTION MODAL ============ */
+function populateCustomerDatalist(){
+  const list = document.getElementById('customer-names-list');
+  const names = Array.from(new Set(txs.map(t=>t.customerName).filter(Boolean)));
+  list.innerHTML = names.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+}
+function openTxModal(id, prefill){
+  populateCustomerDatalist();
+  const overlay = document.getElementById('tx-overlay');
+  const delBtn = document.getElementById('tx-delete-btn');
+  delBtn.style.display = id ? 'inline-flex':'none';
+  delBtn.dataset.confirm = ''; delBtn.textContent = 'ลบรายการ';
+  document.getElementById('t-type-custom').style.display = 'none';
+  if(id){
+    const t = txs.find(x=>x.id===id);
+    document.getElementById('tx-modal-title').textContent = 'แก้ไขรายการแต้ม';
+    document.getElementById('tx-id').value = t.id;
+    document.getElementById('t-customername').value = t.customerName||'';
+    document.getElementById('t-userid').value = t.userId||'';
+    document.getElementById('t-fullname').value = t.fullName||'';
+    document.getElementById('t-points').value = t.points;
+    document.getElementById('t-date').value = t.date||'';
+    setTypeSelectValue(t.type);
+  }else{
+    document.getElementById('tx-modal-title').textContent = 'เพิ่มรายการแต้ม';
+    document.getElementById('tx-id').value = '';
+    document.getElementById('t-customername').value = prefill && prefill.customerName || '';
+    document.getElementById('t-userid').value = prefill && prefill.userId || '';
+    document.getElementById('t-fullname').value = prefill && prefill.fullName || '';
+    document.getElementById('t-points').value = '';
+    document.getElementById('t-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('t-type').value = 'โบนัสเมื่อทำบัตร';
+  }
+  overlay.classList.add('open');
+}
+function setTypeSelectValue(type){
+  const sel = document.getElementById('t-type');
+  const opts = Array.from(sel.options).map(o=>o.value);
+  if(opts.includes(type)){
+    sel.value = type;
+  }else{
+    sel.value = '__custom__';
+    document.getElementById('t-type-custom').style.display = 'block';
+    document.getElementById('t-type-custom').value = type||'';
+  }
+}
+document.getElementById('t-type').addEventListener('change', e=>{
+  document.getElementById('t-type-custom').style.display = e.target.value==='__custom__' ? 'block':'none';
+});
+function closeTxModal(){ document.getElementById('tx-overlay').classList.remove('open'); }
+document.getElementById('tx-overlay').addEventListener('click', e=>{ if(e.target.id==='tx-overlay') closeTxModal(); });
+
+async function saveTx(){
+  const customerName = document.getElementById('t-customername').value.trim();
+  const pointsRaw = document.getElementById('t-points').value;
+  if(!customerName){ toast('กรุณากรอกชื่อลูกค้า'); document.getElementById('t-customername').focus(); return; }
+  if(pointsRaw===''){ toast('กรุณากรอกจำนวนแต้ม'); document.getElementById('t-points').focus(); return; }
+  let type = document.getElementById('t-type').value;
+  if(type==='__custom__') type = document.getElementById('t-type-custom').value.trim() || 'ไม่ระบุ';
+
+  const payload = {
+    customerName,
+    userId: document.getElementById('t-userid').value.trim(),
+    fullName: document.getElementById('t-fullname').value.trim(),
+    points: Number(pointsRaw)||0,
+    type,
+    date: document.getElementById('t-date').value,
+  };
+  const id = document.getElementById('tx-id').value;
+  try{
+    if(id){
+      await updateTx(id, payload);
+      const t = txs.find(x=>x.id===id);
+      Object.assign(t, payload);
+      toast('บันทึกการแก้ไขแล้ว');
+    }else{
+      const saved = await insertTx(payload);
+      txs.unshift(saved);
+      toast('เพิ่มรายการแต้มแล้ว');
+    }
+    closeTxModal();
+    renderAll();
+  }catch(e){
+    console.error(e);
+    toast('บันทึกไม่สำเร็จ: ' + (e.message||e));
+  }
+}
+async function deleteTx(){
+  const id = document.getElementById('tx-id').value;
+  if(!id) return;
+  const btn = document.getElementById('tx-delete-btn');
+  if(btn.dataset.confirm !== '1'){
+    btn.dataset.confirm = '1';
+    btn.textContent = 'คลิกอีกครั้งเพื่อยืนยันการลบ';
+    setTimeout(()=>{ btn.dataset.confirm=''; btn.textContent='ลบรายการ'; }, 3000);
+    return;
+  }
+  try{
+    await deleteTxRow(id);
+    txs = txs.filter(t=>t.id!==id);
+    closeTxModal();
+    renderAll();
+    toast('ลบรายการแล้ว');
+  }catch(e){
+    console.error(e);
+    toast('ลบไม่สำเร็จ: ' + (e.message||e));
+  }
+}
+
+/* ============ EXPORT CSV (plain browser download — works outside Claude) ============ */
+function exportCSV(kind){
+  let headers, rows;
+  if(kind==='customers'){
+    headers = ['Customer Name','Full Name','User ID','Total Points','Transactions'];
+    rows = buildCustomers().sort((a,b)=>b.points-a.points).map(c=>[c.customerName,c.fullName,c.userId,c.points,c.count]);
+  }else{
+    headers = ['Date','Customer Name','Full Name','User ID','Points','Type'];
+    rows = txs.map(t=>[t.date,t.customerName,t.fullName,t.userId,t.points,t.type]);
+  }
+  const csvRows = rows.map(r=> r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(','));
+  const csv = [headers.join(','), ...csvRows].join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (kind==='customers'?'cplex_customers.csv':'cplex_transactions.csv');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============ MASTER RENDER ============ */
+function renderAll(){
+  if(currentView==='dashboard') renderDashboard();
+  if(currentView==='customers') renderCustomers();
+  if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
+}
+document.getElementById('cust-search').addEventListener('input', ()=>{ if(currentView==='customers') renderCustomers(); });
+document.getElementById('tx-search').addEventListener('input', ()=>{ if(currentView==='transactions') renderTransactions(); });
+document.getElementById('tx-filter-type').addEventListener('change', ()=>{ if(currentView==='transactions') renderTransactions(); });
+window.addEventListener('hashchange', ()=>{ initHashView(); renderAll(); });
+
+/* ============ INIT ============ */
+if(sessionStorage.getItem('cplex_staff_ok') === '1'){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  boot();
+}
+</script>
+</body>
+</html>
