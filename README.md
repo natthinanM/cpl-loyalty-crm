@@ -9,7 +9,6 @@
 ```js
 const SUPABASE_URL = 'https://kcfdakdhswvcjunnqvts.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_...'; // publishable (anon) key — ปลอดภัยที่จะฝังในหน้าเว็บ
-const STAFF_PIN = 'cpl2026'; // รหัสผ่านพนักงานแบบง่าย — เปลี่ยนก่อนใช้งานจริง
 ```
 
 ฐานข้อมูลคือโปรเจกต์ Supabase ชื่อ **"บัตรสะสมแต้ม"** ตาราง `loyalty_transactions` ที่มีคอลัมน์:
@@ -59,3 +58,11 @@ Settings → Pages → Deploy from branch → เลือก `main` / root
 ## พัฒนาเพิ่มเติม
 
 เปิด `index.html` ในเบราว์เซอร์ได้ตรงๆ ไม่ต้องมี build step ใดๆ (vanilla HTML/CSS/JS + Supabase JS client ผ่าน CDN)
+
+
+## การเข้าสู่ระบบและผู้ใช้งาน
+
+- เข้าสู่ระบบด้วยอีเมล + รหัสผ่านผ่าน **Supabase Auth** (เลิกใช้รหัส PIN ร่วมแล้ว)
+- ตาราง `app_users` เก็บสิทธิ์ของแต่ละคน: `admin` (จัดการผู้ใช้ได้) หรือ `staff`
+- ผู้ดูแลระบบเพิ่ม/ลบผู้ใช้ เปลี่ยนสิทธิ์ และเปลี่ยนรหัสผ่านได้จากเมนู **ผู้ใช้งาน** (เรียกฟังก์ชัน `admin_create_user`, `admin_set_role`, `admin_set_password`, `admin_delete_user` ซึ่งตรวจสิทธิ์ admin ในฐานข้อมูล)
+- ตาราง `loyalty_transactions` อ่าน/เขียนได้เฉพาะผู้ที่ล็อกอินแล้ว (RLS role `authenticated`)
