@@ -27,6 +27,17 @@
   .sidebar-logo{height:38px;width:auto;}
   .tagline{display:none;}
   .nav-pills{display:flex;gap:8px;flex-wrap:wrap;}
+  .branch-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 32px;border-bottom:var(--border);background:var(--ink);}
+  .branch-bar .bb-label{font-family:var(--serif);font-style:italic;font-size:19px;color:#fff;margin-right:4px;}
+  .branch-tab{padding:7px 16px;border-radius:999px;border:2px solid #fff;color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;user-select:none;transition:transform .12s;}
+  .branch-tab:hover{transform:translateY(-2px);}
+  .branch-tab .cnt{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.18);border-radius:999px;padding:1px 8px;}
+  .branch-tab.active{color:var(--ink);border-color:var(--ink);}
+  .branch-tab.active .cnt{background:rgba(0,0,0,.12);}
+  .branch-tab[data-branch="CPL Inter"].active{background:var(--yellow);}
+  .branch-tab[data-branch="CPLEx JJ"].active{background:var(--green);}
+  .branch-tab[data-branch="CPLEx DEU"].active{background:var(--pink);}
+  .branch-chip{display:inline-block;font-family:var(--sans);font-style:normal;font-size:14px;font-weight:700;background:var(--ink);color:#fff;border-radius:999px;padding:4px 12px;margin-left:8px;vertical-align:middle;letter-spacing:0;}
   .nav-item{padding:8px 16px;border-radius:999px;border:var(--border);cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ink);background:var(--white);transition:transform .12s, box-shadow .12s, background .15s;user-select:none;}
   .nav-item svg{width:16px;height:16px;flex-shrink:0;}
   .nav-item:hover{transform:translate(-2px,-2px);box-shadow:var(--pop);}
@@ -131,6 +142,8 @@
   .login-err{color:#c23b3b;font-size:13px;font-weight:600;margin:-4px 0 12px;display:none;text-align:center;}
 
   @media (max-width:900px){
+    .branch-bar{padding:10px 16px;}
+    .branch-bar .bb-label{display:none;}
     .stat-grid{grid-template-columns:repeat(2,1fr);}
     .sidebar{padding:12px 16px;gap:12px;}
     .sidebar-logo{height:30px;}
@@ -189,13 +202,20 @@
     </div>
   </div>
 
+  <div class="branch-bar" id="branch-bar">
+    <span class="bb-label">สาขา —</span>
+    <div class="branch-tab active" data-branch="CPL Inter">CPL Inter <span class="cnt" data-cnt="CPL Inter">0</span></div>
+    <div class="branch-tab" data-branch="CPLEx JJ">CPLEx JJ <span class="cnt" data-cnt="CPLEx JJ">0</span></div>
+    <div class="branch-tab" data-branch="CPLEx DEU">CPLEx DEU <span class="cnt" data-cnt="CPLEx DEU">0</span></div>
+  </div>
+
   <div class="main">
     <!-- DASHBOARD -->
     <div class="view" id="view-dashboard">
       <div class="topbar">
         <div>
           <div class="kicker">Customer loyalty, at a glance —</div>
-          <h1>แดชบอร์ด<em> สะสมแต้ม</em></h1>
+          <h1>แดชบอร์ด<em> สะสมแต้ม</em><span class="branch-chip"></span></h1>
           <p class="subtitle">ข้อมูลจาก Supabase — อัปเดตแบบเรียลไทม์</p>
         </div>
         <button class="btn btn-primary" onclick="openTxModal()">
@@ -223,7 +243,7 @@
     <!-- CUSTOMERS -->
     <div class="view" id="view-customers" style="display:none;">
       <div class="topbar">
-        <div><div class="kicker">Our people —</div><h1>ลูกค้า</h1><p class="subtitle">สรุปแต้มสะสมรวมต่อลูกค้าหนึ่งคน</p></div>
+        <div><div class="kicker">Our people —</div><h1>ลูกค้า<span class="branch-chip"></span></h1><p class="subtitle">สรุปแต้มสะสมรวมต่อลูกค้าหนึ่งคน</p></div>
         <button class="btn btn-primary" onclick="openTxModal()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           เพิ่มรายการแต้ม
@@ -248,7 +268,7 @@
     <!-- TRANSACTIONS -->
     <div class="view" id="view-transactions" style="display:none;">
       <div class="topbar">
-        <div><div class="kicker">Every point, tracked —</div><h1>รายการแต้ม</h1><p class="subtitle">ประวัติธุรกรรมแต้มทั้งหมด เรียงล่าสุดก่อน</p></div>
+        <div><div class="kicker">Every point, tracked —</div><h1>รายการแต้ม<span class="branch-chip"></span></h1><p class="subtitle">ประวัติธุรกรรมแต้มทั้งหมด เรียงล่าสุดก่อน</p></div>
         <button class="btn btn-primary" onclick="openTxModal()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           เพิ่มรายการแต้ม
@@ -300,7 +320,7 @@
     <div class="modal-body">
       <input type="hidden" id="tx-id">
       <div class="form-row">
-        <label>ชื่อลูกค้า (ออนไลน์) *</label>
+        <label>ชื่อลูกค้า (ออนไลน์) — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง</label>
         <input type="text" id="t-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
         <datalist id="customer-names-list"></datalist>
       </div>
@@ -363,6 +383,21 @@ const TYPE_PILL = {'โบนัสเมื่อทำบัตร':'pill-gree
 /* ============ STATE ============ */
 let supa = null;
 let txs = [];
+let allTxs = [];
+const BRANCHES = ['CPL Inter','CPLEx JJ','CPLEx DEU'];
+let currentBranch = (function(){ try{ const b = localStorage.getItem('cpl_branch'); return BRANCHES.includes(b) ? b : BRANCHES[0]; }catch(e){ return BRANCHES[0]; } })();
+function applyBranch(){
+  txs = allTxs.filter(t=>t.branch===currentBranch);
+  document.querySelectorAll('.branch-tab').forEach(el=>el.classList.toggle('active', el.dataset.branch===currentBranch));
+  document.querySelectorAll('.branch-chip').forEach(el=>el.textContent = currentBranch);
+  BRANCHES.forEach(b=>{ const el = document.querySelector('[data-cnt="'+b+'"]'); if(el) el.textContent = allTxs.filter(t=>t.branch===b).length; });
+}
+function setBranch(b){
+  currentBranch = b;
+  try{ localStorage.setItem('cpl_branch', b); }catch(e){}
+  applyBranch(); renderAll();
+}
+document.querySelectorAll('.branch-tab').forEach(el=>el.addEventListener('click', ()=>setBranch(el.dataset.branch)));
 let currentView = 'dashboard';
 
 /* ============ UTIL ============ */
@@ -406,6 +441,7 @@ function rowToTx(row){
     points: Number(row.points)||0,
     type: row.type || '',
     date: row.tx_date || '',
+    branch: row.branch || 'CPL Inter',
   };
 }
 function txToRow(t){
@@ -416,6 +452,7 @@ function txToRow(t){
     points: Number(t.points)||0,
     type: t.type || '',
     tx_date: t.date || null,
+    branch: t.branch || currentBranch,
   };
 }
 function setSyncStatus(state, text){
@@ -447,13 +484,14 @@ async function boot(){
   try{
     supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     setSyncStatus('connecting', 'กำลังโหลดข้อมูล…');
-    txs = await loadFromSupabase();
+    allTxs = await loadFromSupabase();
     setSyncStatus('synced', 'เชื่อมต่อ Supabase แล้ว');
   }catch(e){
     console.error(e);
     setSyncStatus('error', 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ');
     toast('เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ' + (e.message||e));
   }
+  applyBranch();
   initHashView();
   renderAll();
 }
@@ -644,7 +682,7 @@ function openTxModal(id, prefill){
     document.getElementById('t-date').value = t.date||'';
     setTypeSelectValue(t.type);
   }else{
-    document.getElementById('tx-modal-title').textContent = 'เพิ่มรายการแต้ม';
+    document.getElementById('tx-modal-title').textContent = 'เพิ่มรายการแต้ม · ' + currentBranch;
     document.getElementById('tx-id').value = '';
     document.getElementById('t-customername').value = prefill && prefill.customerName || '';
     document.getElementById('t-userid').value = prefill && prefill.userId || '';
@@ -675,13 +713,14 @@ document.getElementById('tx-overlay').addEventListener('click', e=>{ if(e.target
 async function saveTx(){
   const customerName = document.getElementById('t-customername').value.trim();
   const pointsRaw = document.getElementById('t-points').value;
-  if(!customerName){ toast('กรุณากรอกชื่อลูกค้า'); document.getElementById('t-customername').focus(); return; }
+  if(!customerName && !document.getElementById('t-userid').value.trim()){ toast('กรุณากรอกชื่อลูกค้าหรือ ID ผู้ใช้'); document.getElementById('t-customername').focus(); return; }
   if(pointsRaw===''){ toast('กรุณากรอกจำนวนแต้ม'); document.getElementById('t-points').focus(); return; }
   let type = document.getElementById('t-type').value;
   if(type==='__custom__') type = document.getElementById('t-type-custom').value.trim() || 'ไม่ระบุ';
 
   const payload = {
     customerName,
+    branch: (document.getElementById('tx-id').value ? (txs.find(x=>x.id===document.getElementById('tx-id').value)||{}).branch : null) || currentBranch,
     userId: document.getElementById('t-userid').value.trim(),
     fullName: document.getElementById('t-fullname').value.trim(),
     points: Number(pointsRaw)||0,
@@ -697,7 +736,8 @@ async function saveTx(){
       toast('บันทึกการแก้ไขแล้ว');
     }else{
       const saved = await insertTx(payload);
-      txs.unshift(saved);
+      allTxs.unshift(saved);
+      applyBranch();
       toast('เพิ่มรายการแต้มแล้ว');
     }
     closeTxModal();
@@ -719,7 +759,8 @@ async function deleteTx(){
   }
   try{
     await deleteTxRow(id);
-    txs = txs.filter(t=>t.id!==id);
+    allTxs = allTxs.filter(t=>t.id!==id);
+    applyBranch();
     closeTxModal();
     renderAll();
     toast('ลบรายการแล้ว');
@@ -738,6 +779,7 @@ function exportCSV(kind){
   }else{
     headers = ['Date','Customer Name','Full Name','User ID','Points','Type'];
     rows = txs.map(t=>[t.date,t.customerName,t.fullName,t.userId,t.points,t.type]);
+    headers = ['Date','Customer Name','Full Name','User ID','Points','Type'];
   }
   const csvRows = rows.map(r=> r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(','));
   const csv = [headers.join(','), ...csvRows].join('\n');
@@ -745,7 +787,7 @@ function exportCSV(kind){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = (kind==='customers'?'cpl_customers.csv':'cpl_transactions.csv');
+  a.download = currentBranch.replace(/\s+/g,'_') + '_' + (kind==='customers'?'customers.csv':'transactions.csv');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
