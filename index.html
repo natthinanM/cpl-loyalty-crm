@@ -20,8 +20,8 @@
   #app{display:flex;min-height:100vh;}
 
   .sidebar{width:230px;background:linear-gradient(180deg,var(--navy) 0%, #0c1b33 100%);color:#fff;padding:24px 18px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
-  .logo{font-family:'Maven Pro',sans-serif;font-weight:900;font-size:21px;letter-spacing:0.5px;margin-bottom:4px;display:flex;align-items:baseline;gap:2px;}
-  .logo .l1{color:var(--blue);} .logo .rest{color:#fff;}
+  .logo-img{display:block;margin-bottom:10px;}
+  .sidebar-logo{height:34px;width:auto;}
   .tagline{font-size:11px;color:var(--blue);margin-bottom:28px;letter-spacing:0.3px;font-family:'Maven Pro',sans-serif;}
   .nav-item{padding:10px 12px;border-radius:10px;cursor:pointer;font-size:14.5px;font-weight:500;display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.78);transition:background .15s, color .15s;user-select:none;}
   .nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:0.85;}
@@ -98,9 +98,8 @@
 
   .login-screen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:200;}
   .login-card{background:#fff;border-radius:18px;padding:36px 34px;width:100%;max-width:360px;box-shadow:var(--shadow-md);}
-  .login-card .logo{color:var(--navy);margin-bottom:4px;}
-  .login-card .logo .rest{color:var(--navy);}
-  .login-card p{color:var(--grey-700);font-size:13px;margin:0 0 20px;}
+  .login-card .logo-img{height:48px;width:auto;margin:0 auto 14px;}
+  .login-card p{color:var(--grey-700);font-size:13px;margin:0 0 20px;text-align:center;}
   .login-card input{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--grey-200);font-size:14px;font-family:'Sarabun',sans-serif;margin-bottom:12px;}
   .login-card .btn{width:100%;justify-content:center;}
   .login-err{color:#c23b3b;font-size:12.5px;margin:-4px 0 12px;display:none;}
@@ -108,7 +107,7 @@
   @media (max-width:900px){
     .stat-grid{grid-template-columns:repeat(2,1fr);}
     .sidebar{width:72px;padding:20px 10px;}
-    .logo, .tagline, .nav-item span{display:none;}
+    .logo-img, .tagline, .nav-item span{display:none;}
     .nav-item{justify-content:center;}
     .main{padding:20px 16px 50px;}
     .form-grid{grid-template-columns:1fr;}
@@ -122,7 +121,7 @@
 <!-- STAFF PIN GATE (lightweight, client-side — see README for real auth upgrade) -->
 <div class="login-screen" id="login-screen">
   <div class="login-card">
-    <div class="logo"><span class="rest">CP</span><span class="l1" style="color:var(--blue);">L</span><span class="rest">EX</span></div>
+    <img class="logo-img" src="assets/logo.png" alt="CPL Group">
     <p>ระบบลูกค้าสะสมแต้ม — ใส่รหัสพนักงานเพื่อเข้าใช้งาน</p>
     <input type="password" id="pin-input" placeholder="รหัสผ่าน" autocomplete="off">
     <div class="login-err" id="login-err">รหัสผ่านไม่ถูกต้อง</div>
@@ -132,7 +131,7 @@
 
 <div id="app" style="display:none;">
   <div class="sidebar">
-    <div class="logo"><span class="rest">CP</span><span class="l1">L</span><span class="rest">EX</span></div>
+    <img class="logo-img sidebar-logo" src="assets/logo.png" alt="CPL Group">
     <div class="tagline">ระบบลูกค้าสะสมแต้ม</div>
     <div class="nav-item active" data-view="dashboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
