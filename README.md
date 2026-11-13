@@ -1,4 +1,4 @@
-# CPLEX Loyalty CRM
+# CPL Loyalty CRM
 
 ระบบจัดการลูกค้าสะสมแต้มของ CPLEX — เว็บไซต์ static เดียว (`index.html`) เชื่อมต่อฐานข้อมูล [Supabase](https://supabase.com) โดยตรง ใช้งานได้นอก Claude ไม่ต้องมี backend แยก
 
