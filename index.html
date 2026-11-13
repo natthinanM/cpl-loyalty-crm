@@ -146,7 +146,7 @@
       <span>รายการแต้ม</span>
     </div>
     <div class="sidebar-foot">
-      CPLEX Loyalty CRM<br>
+      CPL Loyalty CRM<br>
       <span id="sync-badge" style="display:inline-flex;align-items:center;gap:5px;margin-top:4px;">
         <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#999;display:inline-block;"></span>
         <span id="sync-text">กำลังเชื่อมต่อฐานข้อมูล…</span>
@@ -710,7 +710,7 @@ function exportCSV(kind){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = (kind==='customers'?'cplex_customers.csv':'cplex_transactions.csv');
+  a.download = (kind==='customers'?'cpl_customers.csv':'cpl_transactions.csv');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
