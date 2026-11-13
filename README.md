@@ -9,7 +9,7 @@
 ```js
 const SUPABASE_URL = 'https://kcfdakdhswvcjunnqvts.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_...'; // publishable (anon) key — ปลอดภัยที่จะฝังในหน้าเว็บ
-const STAFF_PIN = 'cplex2026'; // รหัสผ่านพนักงานแบบง่าย — เปลี่ยนก่อนใช้งานจริง
+const STAFF_PIN = 'cpl2026'; // รหัสผ่านพนักงานแบบง่าย — เปลี่ยนก่อนใช้งานจริง
 ```
 
 ฐานข้อมูลคือโปรเจกต์ Supabase ชื่อ **"บัตรสะสมแต้ม"** ตาราง `loyalty_transactions` ที่มีคอลัมน์:
