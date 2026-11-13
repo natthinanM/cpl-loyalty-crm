@@ -231,7 +231,7 @@
       </div>
       <div class="stat-grid">
         <div class="stat-card navy"><div class="stat-label">ลูกค้าทั้งหมด</div><div class="stat-value" id="s-customers">0</div><div class="stat-sub">บัญชีที่มีกิจกรรม</div><div class="curve-deco"></div></div>
-        <div class="stat-card"><div class="stat-label">แต้มสะสมคงเหลือรวม</div><div class="stat-value" id="s-points">0</div><div class="stat-sub">แต้มทั้งระบบ</div><div class="curve-deco"></div></div>
+        <div class="stat-card"><div class="stat-label">ลูกค้าที่มีคะแนนแลกคูปองได้</div><div class="stat-value" id="s-points">0</div><div class="stat-sub">มี 10 แต้มขึ้นไป</div><div class="curve-deco"></div></div>
         <div class="stat-card orange"><div class="stat-label">ธุรกรรมทั้งหมด</div><div class="stat-value" id="s-tx">0</div><div class="stat-sub">รายการให้/หักแต้ม</div><div class="curve-deco"></div></div>
         <div class="stat-card green"><div class="stat-label">ลูกค้าทำบัตรใหม่</div><div class="stat-value" id="s-newcard">0</div><div class="stat-sub">รายการ "โบนัสเมื่อทำบัตร"</div><div class="curve-deco"></div></div>
       </div>
@@ -384,6 +384,7 @@ const TABLE = 'loyalty_transactions';
 // RLS. See README.md for how to upgrade to real Supabase Auth + per-user RLS.
 const STAFF_PIN = 'cpl2026';
 
+const COUPON_MIN_POINTS = 10; // แต้มขั้นต่ำที่แลกคูปองได้
 const TYPE_PILL = {'โบนัสเมื่อทำบัตร':'pill-green','ส่งสินค้า':'pill-blue'};
 
 /* ============ STATE ============ */
@@ -548,7 +549,7 @@ function renderDashboard(){
   const newCardCount = txs.filter(t=>t.type==='โบนัสเมื่อทำบัตร').length;
 
   document.getElementById('s-customers').textContent = fmtNum(customers.length);
-  document.getElementById('s-points').textContent = fmtNum(totalPoints);
+  document.getElementById('s-points').textContent = fmtNum(customers.filter(c=>c.points>=COUPON_MIN_POINTS).length);
   document.getElementById('s-tx').textContent = fmtNum(txs.length);
   document.getElementById('s-newcard').textContent = fmtNum(newCardCount);
 
@@ -819,7 +820,7 @@ const I18N_EN = {
   'กำลังเชื่อมต่อฐานข้อมูล…':'Connecting to database…','กำลังโหลดข้อมูล…':'Loading data…','เชื่อมต่อ Supabase แล้ว':'Connected to Supabase',
   'เชื่อมต่อฐานข้อมูลไม่สำเร็จ':'Could not connect to database','ออกจากระบบ':'Sign out','สาขา —':'Branch —',
   'ข้อมูลจาก Supabase — อัปเดตแบบเรียลไทม์':'Live data from Supabase','เพิ่มรายการแต้ม':'Add points',
-  'ลูกค้าทั้งหมด':'Total customers','บัญชีที่มีกิจกรรม':'active accounts','แต้มสะสมคงเหลือรวม':'Total points balance','แต้มทั้งระบบ':'across the branch',
+  'ลูกค้าทั้งหมด':'Total customers','บัญชีที่มีกิจกรรม':'active accounts','ลูกค้าที่มีคะแนนแลกคูปองได้':'Coupon-eligible customers','มี 10 แต้มขึ้นไป':'with 10+ points',
   'ธุรกรรมทั้งหมด':'Transactions','รายการให้/หักแต้ม':'points added / deducted','ลูกค้าทำบัตรใหม่':'New cardholders','รายการ "โบนัสเมื่อทำบัตร"':'"Sign-up bonus" entries',
   'แต้มแยกตามประเภท':'Points by type','ลูกค้าแต้มสูงสุด 5 อันดับ':'Top 5 customers by points',
   'ชื่อลูกค้า':'Customer','ชื่อ-นามสกุล':'Full name','แต้มรวม':'Total points','จำนวนรายการ':'Entries',
