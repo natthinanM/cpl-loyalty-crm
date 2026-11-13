@@ -47,6 +47,10 @@
   .sidebar-foot{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--grey-700);}
   .sidebar-foot .brand-name{display:none;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--ink);background:var(--white);font-weight:500;}
+  .lang-toggle{display:inline-flex;border:var(--border);border-radius:999px;overflow:hidden;background:var(--white);}
+  .lang-btn{padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;user-select:none;letter-spacing:.5px;}
+  .lang-btn.active{background:var(--ink);color:#fff;}
+  .login-card .lang-toggle{position:absolute;top:16px;right:16px;}
   .logout-pill{display:inline-flex;padding:6px 14px;border-radius:999px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;font-size:12.5px;}
   .logout-pill:hover{background:var(--brown);}
 
@@ -165,6 +169,7 @@
 <div class="login-screen" id="login-screen">
   <div class="login-blob b1"></div><div class="login-blob b2"></div><div class="login-blob b3"></div><div class="login-blob b4"></div>
   <div class="login-card">
+    <span class="lang-toggle"><span class="lang-btn" data-lang="th">TH</span><span class="lang-btn" data-lang="en">EN</span></span>
     <img class="logo-img" src="assets/logo.png?v=3" alt="CPL Group">
     <div class="login-head">Loyalty <em>made simple.</em></div>
     <p>ระบบลูกค้าสะสมแต้ม — ใส่รหัสพนักงานเพื่อเข้าใช้งาน</p>
@@ -198,6 +203,7 @@
         <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:#999;display:inline-block;"></span>
         <span id="sync-text">กำลังเชื่อมต่อฐานข้อมูล…</span>
       </span>
+      <span class="lang-toggle"><span class="lang-btn" data-lang="th">TH</span><span class="lang-btn" data-lang="en">EN</span></span>
       <a href="#" class="logout-pill" onclick="logout();return false;">ออกจากระบบ</a>
     </div>
   </div>
@@ -403,8 +409,8 @@ let currentView = 'dashboard';
 /* ============ UTIL ============ */
 function uid(){ return 't' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 function escapeHtml(str){ return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function fmtNum(n){ return (Number(n)||0).toLocaleString('th-TH'); }
-function fmtDate(iso){ if(!iso) return '-'; const dt = new Date(iso+'T00:00:00'); if(isNaN(dt)) return escapeHtml(iso); return dt.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtNum(n){ return (Number(n)||0).toLocaleString(LANG==='en'?'en-GB':'th-TH'); }
+function fmtDate(iso){ if(!iso) return '-'; const dt = new Date(iso+'T00:00:00'); if(isNaN(dt)) return escapeHtml(iso); return dt.toLocaleDateString(LANG==='en'?'en-GB':'th-TH',{day:'2-digit',month:'short',year:'numeric'}); }
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -804,6 +810,82 @@ document.getElementById('cust-search').addEventListener('input', ()=>{ if(curren
 document.getElementById('tx-search').addEventListener('input', ()=>{ if(currentView==='transactions') renderTransactions(); });
 document.getElementById('tx-filter-type').addEventListener('change', ()=>{ if(currentView==='transactions') renderTransactions(); });
 window.addEventListener('hashchange', ()=>{ initHashView(); renderAll(); });
+
+/* ============ I18N (TH / EN) ============ */
+const I18N_EN = {
+  'ระบบลูกค้าสะสมแต้ม — ใส่รหัสพนักงานเพื่อเข้าใช้งาน':'Loyalty CRM — enter your staff PIN to continue',
+  'รหัสผ่าน':'PIN','รหัสผ่านไม่ถูกต้อง':'Incorrect PIN','เข้าสู่ระบบ':'Sign in','ระบบลูกค้าสะสมแต้ม':'Customer loyalty system',
+  'แดชบอร์ด':'Dashboard','ลูกค้า':'Customers','รายการแต้ม':'Transactions','สะสมแต้ม':'Loyalty',
+  'กำลังเชื่อมต่อฐานข้อมูล…':'Connecting to database…','กำลังโหลดข้อมูล…':'Loading data…','เชื่อมต่อ Supabase แล้ว':'Connected to Supabase',
+  'เชื่อมต่อฐานข้อมูลไม่สำเร็จ':'Could not connect to database','ออกจากระบบ':'Sign out','สาขา —':'Branch —',
+  'ข้อมูลจาก Supabase — อัปเดตแบบเรียลไทม์':'Live data from Supabase','เพิ่มรายการแต้ม':'Add points',
+  'ลูกค้าทั้งหมด':'Total customers','บัญชีที่มีกิจกรรม':'active accounts','แต้มสะสมคงเหลือรวม':'Total points balance','แต้มทั้งระบบ':'across the branch',
+  'ธุรกรรมทั้งหมด':'Transactions','รายการให้/หักแต้ม':'points added / deducted','ลูกค้าทำบัตรใหม่':'New cardholders','รายการ "โบนัสเมื่อทำบัตร"':'"Sign-up bonus" entries',
+  'แต้มแยกตามประเภท':'Points by type','ลูกค้าแต้มสูงสุด 5 อันดับ':'Top 5 customers by points',
+  'ชื่อลูกค้า':'Customer','ชื่อ-นามสกุล':'Full name','แต้มรวม':'Total points','จำนวนรายการ':'Entries',
+  'สรุปแต้มสะสมรวมต่อลูกค้าหนึ่งคน':'Total points per customer','ค้นหาชื่อลูกค้า, ID ผู้ใช้...':'Search name or user ID…','ส่งออก CSV':'Export CSV',
+  'ชื่อลูกค้า (ออนไลน์)':'Customer (online name)','ID ผู้ใช้':'User ID','แต้มสะสม':'Points','ไม่พบข้อมูลลูกค้า':'No customers found',
+  'ประวัติธุรกรรมแต้มทั้งหมด เรียงล่าสุดก่อน':'All point transactions, newest first','ประเภททั้งหมด':'All types',
+  'วันที่':'Date','แต้ม':'Points','ประเภท':'Type','ไม่มีรายการ':'No transactions','รายละเอียดลูกค้า':'Customer details',
+  'ประวัติรายการ':'History','ปิด':'Close','เพิ่มแต้มให้ลูกค้านี้':'Add points for this customer',
+  'ชื่อลูกค้า (ออนไลน์) — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง':'Customer (online name) — enter a name or a user ID',
+  'เช่น Seagame Porjai':'e.g. Seagame Porjai','ID ผู้ใช้ของลูกค้า (ถ้ามี)':"Customer's user ID (optional)",'ชื่อ-นามสกุลลูกค้า':'Full name',
+  'ชื่อ-นามสกุลจริง (ถ้าทราบ)':'Legal name (if known)','แต้ม *':'Points *','เช่น 2 หรือ -1 สำหรับหักแต้ม':'e.g. 2, or -1 to deduct','ประเภทแต้ม *':'Point type *',
+  'โบนัสเมื่อทำบัตร':'Sign-up bonus','ส่งสินค้า':'Shipment','อื่นๆ (ระบุเอง)':'Other (specify)','ระบุประเภทแต้ม':'Specify point type',
+  'ลบรายการ':'Delete','ยกเลิก':'Cancel','บันทึก':'Save','ไม่ระบุ':'Unspecified','ยังไม่มีข้อมูล':'No data yet','ดูรายละเอียด':'View',
+  'แก้ไข':'Edit','(ไม่ทราบชื่อ)':'(unknown name)','ไม่มี ID ผู้ใช้':'No user ID','ไม่มีประวัติ':'No history','แก้ไขรายการแต้ม':'Edit transaction',
+  'กรุณากรอกชื่อลูกค้าหรือ ID ผู้ใช้':'Please enter a customer name or user ID','กรุณากรอกจำนวนแต้ม':'Please enter points',
+  'บันทึกการแก้ไขแล้ว':'Changes saved','เพิ่มรายการแต้มแล้ว':'Points added','คลิกอีกครั้งเพื่อยืนยันการลบ':'Click again to confirm','ลบรายการแล้ว':'Deleted',
+};
+const I18N_RULES = [
+  [/^\((\d[\d,]*) รายการ\)$/, (m)=>`(${m[1]} entries)`],
+  [/^(-?[\d,]+) แต้ม$/, (m)=>`${m[1]} pts`],
+  [/^เพิ่มรายการแต้ม · (.+)$/, (m)=>`Add points · ${m[1]}`],
+  [/^(เชื่อมต่อฐานข้อมูลไม่สำเร็จ|บันทึกไม่สำเร็จ|ลบไม่สำเร็จ): (.*)$/s, (m)=>({'เชื่อมต่อฐานข้อมูลไม่สำเร็จ':'Could not connect to database','บันทึกไม่สำเร็จ':'Save failed','ลบไม่สำเร็จ':'Delete failed'}[m[1]])+': '+m[2]],
+];
+let LANG = (function(){ try{ return localStorage.getItem('cpl_lang')==='en' ? 'en' : 'th'; }catch(e){ return 'th'; } })();
+function trEN(str){
+  const core = str.trim(); if(!core) return null;
+  let out = I18N_EN[core];
+  if(out===undefined){ for(const [re,fn] of I18N_RULES){ const m = core.match(re); if(m){ out = fn(m); break; } } }
+  if(out===undefined) return null;
+  return str.replace(core, out);
+}
+const I18N_ORIG = new WeakMap();
+function i18nNode(node){
+  if(node.nodeType===3){
+    if(!node.nodeValue.trim()) return;
+    if(LANG==='en'){ const en = trEN(node.nodeValue); if(en!==null && en!==node.nodeValue){ I18N_ORIG.set(node, node.nodeValue); node.nodeValue = en; } }
+    else if(I18N_ORIG.has(node)){ node.nodeValue = I18N_ORIG.get(node); I18N_ORIG.delete(node); }
+    return;
+  }
+  if(node.nodeType!==1 || node.tagName==='SCRIPT' || node.tagName==='STYLE') return;
+  ['placeholder','title'].forEach(attr=>{
+    if(!node.hasAttribute(attr)) return;
+    const key = 'data-th-'+attr;
+    if(LANG==='en'){ const cur = node.getAttribute(attr); const en = trEN(cur); if(en!==null && en!==cur){ node.setAttribute(key, cur); node.setAttribute(attr, en); } }
+    else if(node.hasAttribute(key)){ node.setAttribute(attr, node.getAttribute(key)); node.removeAttribute(key); }
+  });
+  node.childNodes.forEach(i18nNode);
+}
+const i18nObserver = new MutationObserver(muts=>{
+  if(LANG!=='en') return;
+  muts.forEach(m=>{
+    if(m.type==='characterData') i18nNode(m.target);
+    else m.addedNodes.forEach(i18nNode);
+  });
+});
+i18nObserver.observe(document.body, {childList:true, subtree:true, characterData:true});
+function setLang(l){
+  LANG = l;
+  try{ localStorage.setItem('cpl_lang', l); }catch(e){}
+  document.documentElement.lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.dataset.lang===l));
+  i18nNode(document.body);
+  if(typeof renderAll==='function' && document.getElementById('app').style.display!=='none') renderAll();
+}
+document.querySelectorAll('.lang-btn').forEach(b=>b.addEventListener('click', ()=>setLang(b.dataset.lang)));
+setLang(LANG);
 
 /* ============ INIT ============ */
 if(sessionStorage.getItem('cplex_staff_ok') === '1'){
