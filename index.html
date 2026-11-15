@@ -113,6 +113,27 @@
   .theme-opt .theme-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--grey-200);}
   .login-card .theme-switch{position:absolute;top:16px;left:16px;}
   .login-card .theme-menu{left:0;right:auto;}
+
+  /* ---------- NOTIFICATIONS ---------- */
+  .notif-wrap{position:relative;display:inline-flex;}
+  .notif-btn{position:relative;width:34px;height:34px;border-radius:50%;border:var(--border);background:var(--white);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform .12s;}
+  .notif-btn:hover{transform:translateY(-1px);}
+  .notif-btn svg{width:16px;height:16px;}
+  .notif-badge{display:none;position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e0483e;color:#fff;font-size:10.5px;font-weight:800;align-items:center;justify-content:center;border:2px solid var(--paper);}
+  .notif-panel{display:none;position:absolute;top:calc(100% + 10px);right:0;background:var(--white);border:var(--border);border-radius:16px;box-shadow:var(--shadow-md);width:320px;max-width:85vw;z-index:200;overflow:hidden;}
+  .notif-panel.open{display:block;}
+  .notif-panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:var(--border);}
+  .notif-panel-head .t{font-weight:800;font-size:14px;color:var(--ink);}
+  .notif-clear{font-size:12px;font-weight:700;color:var(--grey-700);cursor:pointer;background:none;border:none;padding:0;}
+  .notif-clear:hover{color:var(--ink);}
+  .notif-list{max-height:320px;overflow-y:auto;}
+  .notif-item{padding:11px 14px;border-bottom:1px solid var(--grey-200);font-size:13px;}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-item.unread{background:var(--row-hover);}
+  .notif-item-title{font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;}
+  .notif-tier{font-size:10.5px;font-weight:800;background:var(--yellow);border:1.5px solid var(--ink);border-radius:999px;padding:1px 8px;margin-left:auto;}
+  .notif-item-sub{color:var(--grey-700);font-size:11.5px;margin-top:3px;}
+  .notif-panel .empty-state{padding:26px 14px;text-align:center;color:var(--grey-700);font-size:13px;}
   .user-pill{font-size:12.5px;font-weight:600;color:var(--ink);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .user-pill .role{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;background:var(--pink);border:1.5px solid var(--ink);border-radius:999px;padding:1px 8px;}
   .user-form{display:grid;grid-template-columns:2fr 1.4fr 1fr auto;gap:12px;align-items:end;}
@@ -277,6 +298,19 @@
         <span id="sync-text">กำลังเชื่อมต่อฐานข้อมูล…</span>
       </span>
       <span class="user-pill" id="user-pill"></span>
+      <span class="notif-wrap">
+        <button type="button" class="notif-btn" title="การแจ้งเตือน" aria-label="การแจ้งเตือน">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge" id="notif-badge">0</span>
+        </button>
+        <div class="notif-panel" id="notif-panel">
+          <div class="notif-panel-head">
+            <span class="t">การแจ้งเตือน</span>
+            <button type="button" class="notif-clear" id="notif-clear-btn">ล้างทั้งหมด</button>
+          </div>
+          <div class="notif-list" id="notif-list"></div>
+        </div>
+      </span>
       <span class="theme-switch">
         <button type="button" class="theme-btn" title="เปลี่ยนธีม" aria-label="เปลี่ยนธีม">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 22a10 10 0 1 1 0-20 6 6 0 0 1 0 12c-1 0-2 1-2 2a2 2 0 0 0 2 2"/></svg>
@@ -705,6 +739,78 @@ async function boot(){
   applyBranch();
   initHashView();
   renderAll();
+  checkNotifications();
+}
+
+/* ============ NOTIFICATIONS (10-point / 30-point milestones) ============ */
+const NOTIF_TIERS = [10, 30];
+function getNotifStore(){
+  try{ return JSON.parse(localStorage.getItem('cpl_notifs')||'[]'); }catch(e){ return []; }
+}
+function saveNotifStore(list){
+  try{ localStorage.setItem('cpl_notifs', JSON.stringify(list.slice(-150))); }catch(e){}
+}
+function computeMilestones(){
+  const map = new Map();
+  allTxs.forEach(t=>{
+    const key = (t.branch||'') + '|' + customerKey(t);
+    if(!map.has(key)) map.set(key, {key, branch:t.branch||'', customerName:'', userId:'', points:0});
+    const c = map.get(key);
+    if(t.customerName) c.customerName = t.customerName;
+    if(t.userId) c.userId = t.userId;
+    c.points += Number(t.points)||0;
+  });
+  const out = [];
+  map.forEach(c=>{
+    NOTIF_TIERS.forEach(tier=>{
+      if(c.points >= tier){
+        out.push({ id: c.key+'|'+tier, branch:c.branch, name: c.customerName || c.userId || '(ไม่ระบุชื่อ)', points:c.points, tier });
+      }
+    });
+  });
+  return out;
+}
+function checkNotifications(){
+  const milestones = computeMilestones();
+  const store = getNotifStore();
+  const seenIds = new Set(store.map(n=>n.id));
+  const fresh = milestones.filter(m=>!seenIds.has(m.id));
+  if(fresh.length){
+    const now = new Date().toISOString();
+    fresh.forEach(m=>store.push(Object.assign({at:now, read:false}, m)));
+    saveNotifStore(store);
+    if(fresh.length===1){
+      const m = fresh[0];
+      toast(`🎉 ${m.name} สะสมครบ ${m.tier} แต้มแล้ว (${m.branch})`);
+    }else{
+      toast(`🎉 มีลูกค้าสะสมครบแต้มใหม่ ${fresh.length} ราย`);
+    }
+  }
+  renderNotifBell();
+}
+function renderNotifBell(){
+  const store = getNotifStore();
+  const unread = store.filter(n=>!n.read).length;
+  const badge = document.getElementById('notif-badge');
+  if(badge){ badge.textContent = unread>9?'9+':String(unread); badge.style.display = unread>0 ? 'flex' : 'none'; }
+  const list = document.getElementById('notif-list');
+  if(!list) return;
+  const items = store.slice().reverse().slice(0,40);
+  list.innerHTML = items.length ? items.map(n=>`
+    <div class="notif-item${n.read?'':' unread'}">
+      <div class="notif-item-title">${n.tier>=30?'🏆':'🎁'} ${escapeHtml(n.name)}<span class="notif-tier">ครบ ${n.tier} แต้ม</span></div>
+      <div class="notif-item-sub">${escapeHtml(n.branch)} · ${fmtDate((n.at||'').slice(0,10))}</div>
+    </div>
+  `).join('') : '<div class="empty-state">ยังไม่มีการแจ้งเตือน</div>';
+}
+function markNotifsRead(){
+  const store = getNotifStore().map(n=>Object.assign({}, n, {read:true}));
+  saveNotifStore(store);
+  renderNotifBell();
+}
+function clearNotifs(){
+  saveNotifStore([]);
+  renderNotifBell();
 }
 
 /* ============ AGGREGATION ============ */
@@ -953,6 +1059,7 @@ async function saveTx(){
     }
     closeTxModal();
     renderAll();
+    setTimeout(checkNotifications, 1200);
   }catch(e){
     console.error(e);
     toast('บันทึกไม่สำเร็จ: ' + (e.message||e));
@@ -1129,6 +1236,34 @@ document.querySelectorAll('.theme-btn').forEach(btn=>{
 document.querySelectorAll('.theme-opt').forEach(el=>el.addEventListener('click', ()=>setTheme(el.dataset.theme)));
 document.addEventListener('click', ()=>document.querySelectorAll('.theme-menu').forEach(el=>el.classList.remove('open')));
 (function(){ let t='waxy'; try{ t = localStorage.getItem('cpl_theme') || 'waxy'; }catch(e){} setTheme(t); })();
+
+/* ============ NOTIFICATIONS: UI wiring ============ */
+(function(){
+  const btn = document.querySelector('.notif-btn');
+  const panel = document.getElementById('notif-panel');
+  if(!btn || !panel) return;
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    document.querySelectorAll('.theme-menu').forEach(el=>el.classList.remove('open'));
+    const wasOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !wasOpen);
+    if(!wasOpen) markNotifsRead();
+  });
+  panel.addEventListener('click', (e)=>e.stopPropagation());
+  document.addEventListener('click', ()=>panel.classList.remove('open'));
+  const clearBtn = document.getElementById('notif-clear-btn');
+  if(clearBtn) clearBtn.addEventListener('click', (e)=>{ e.stopPropagation(); clearNotifs(); });
+})();
+/* re-check periodically so milestones reached via the Sheet sync or another device also notify */
+setInterval(async ()=>{
+  if(!me) return;
+  try{
+    allTxs = await loadFromSupabase();
+    applyBranch();
+    renderAll();
+    checkNotifications();
+  }catch(e){ /* silent — next tick will retry */ }
+}, 60000);
 
 /* ============ INIT ============ */
 enterApp();
