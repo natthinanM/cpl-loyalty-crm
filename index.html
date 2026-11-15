@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<script>(function(){try{var t=localStorage.getItem('cpl_theme');if(t&&t!=='waxy')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CPL Loyalty CRM</title>
@@ -15,6 +16,45 @@
     --navy:#111111; --grey-900:#111111; --grey-700:#4a4a4a; --grey-400:#8a8a8a; --grey-200:#d9d6cc; --grey-100:#F3F0E6;
     --radius:22px; --border:2px solid var(--ink); --pop:4px 4px 0 var(--ink); --shadow-md:6px 6px 0 var(--ink);
     --sans:'Archivo','IBM Plex Sans Thai',sans-serif; --serif:'Instrument Serif',Georgia,serif;
+    --fill:#111111; --fill-text:#ffffff; --row-hover:#FFF8D9;
+  }
+
+  /* ========== THEMES ========== */
+  html[data-theme="dark"]{
+    --ink:#eef1f6; --paper:#13151a; --white:#1d2027;
+    --green:#2f6b4a; --yellow:#8a7a2e; --brown:#6b4530; --peach:#8a5a3a; --pink:#7a3f63; --sky:#2c5f82; --blue:#2a5a8a; --orange:#8a5a2a;
+    --grey-900:#eef1f6; --grey-700:#b7bcc6; --grey-400:#7b818c; --grey-200:#2a2e37; --grey-100:#20232a;
+    --pop:4px 4px 0 var(--ink); --shadow-md:6px 6px 0 var(--ink);
+    --fill:#eef1f6; --fill-text:#13151a; --row-hover:#242833;
+  }
+  html[data-theme="classic"]{
+    --ink:#10223E; --paper:#F4F6F9; --white:#FFFFFF;
+    --green:#2E8B57; --yellow:#D9A441; --brown:#8a5a3a; --peach:#C9843F; --pink:#A8577A; --sky:#3F98D8; --blue:#1E5FA8; --orange:#C9712F;
+    --grey-900:#10223E; --grey-700:#4a5568; --grey-400:#8a94a6; --grey-200:#dde3ec; --grey-100:#eef2f7;
+    --radius:10px; --border:1px solid var(--grey-200); --pop:0 2px 6px rgba(16,34,62,.14); --shadow-md:0 8px 20px rgba(16,34,62,.16);
+    --fill:#10223E; --fill-text:#ffffff; --row-hover:#eef4fb;
+    --serif:Georgia,'Instrument Serif',serif;
+  }
+  html[data-theme="minimal"]{
+    --ink:#1a1a1a; --paper:#FAFAFA; --white:#FFFFFF;
+    --green:#6b9e78; --yellow:#b99a3f; --brown:#9c8167; --peach:#c0906a; --pink:#b483a0; --sky:#7b97a8; --blue:#5b7a99; --orange:#b98a5c;
+    --grey-900:#1a1a1a; --grey-700:#6b6b6b; --grey-400:#a3a3a3; --grey-200:#e5e5e5; --grey-100:#f2f2f2;
+    --radius:8px; --border:1px solid var(--grey-200); --pop:0 1px 2px rgba(0,0,0,.06); --shadow-md:0 2px 8px rgba(0,0,0,.08);
+    --fill:#1a1a1a; --fill-text:#ffffff; --row-hover:#f5f5f5;
+  }
+  html[data-theme="disney"]{
+    --ink:#3a2060; --paper:#FFF3FA; --white:#FFFFFF;
+    --green:#3fb871; --yellow:#FFD84D; --brown:#B9754B; --peach:#FFA7C0; --pink:#FF7FC2; --sky:#5CC6F2; --blue:#4F9FF2; --orange:#FF9E45;
+    --grey-900:#3a2060; --grey-700:#7a5a9e; --grey-400:#b79fd6; --grey-200:#f0def2; --grey-100:#faf0fc;
+    --radius:28px; --border:3px solid var(--ink); --pop:5px 5px 0 var(--ink); --shadow-md:7px 7px 0 var(--pink);
+    --fill:#FF7FC2; --fill-text:#ffffff; --row-hover:#FFEAF6;
+  }
+  html[data-theme="cool"]{
+    --ink:#eafcff; --paper:#0a0e17; --white:#121826;
+    --green:#1fa578; --yellow:#b89f2e; --brown:#8a5c3c; --peach:#b5663f; --pink:#a33f87; --sky:#2f8fb0; --blue:#4a56c9; --orange:#b05a2a;
+    --grey-900:#eafcff; --grey-700:#9aa6c0; --grey-400:#6b7690; --grey-200:#202838; --grey-100:#161c29;
+    --radius:16px; --border:1.5px solid #39c7ff; --pop:0 0 0 1px #39c7ff,0 0 20px rgba(57,199,255,.3); --shadow-md:0 0 24px rgba(79,216,255,.4);
+    --fill:#39c7ff; --fill-text:#06121c; --row-hover:#17202f;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -35,9 +75,9 @@
   .menu-toggle:hover{transform:translate(-2px,-2px);box-shadow:var(--pop);}
   .menu-toggle svg{width:18px;height:18px;}
   #app.nav-collapsed .menu-toggle{background:var(--yellow);}
-  .branch-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 32px;border-bottom:var(--border);background:var(--ink);}
-  .branch-bar .bb-label{font-family:var(--serif);font-style:italic;font-size:19px;color:#fff;margin-right:4px;}
-  .branch-tab{padding:7px 16px;border-radius:999px;border:2px solid #fff;color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;user-select:none;transition:transform .12s;}
+  .branch-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 32px;border-bottom:var(--border);background:var(--fill);}
+  .branch-bar .bb-label{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--fill-text);margin-right:4px;}
+  .branch-tab{padding:7px 16px;border-radius:999px;border:2px solid var(--fill-text);color:var(--fill-text);font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;user-select:none;transition:transform .12s;}
   .branch-tab:hover{transform:translateY(-2px);}
   .branch-tab .cnt{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.18);border-radius:999px;padding:1px 8px;}
   .branch-tab.active{color:var(--ink);border-color:var(--ink);}
@@ -45,7 +85,7 @@
   .branch-tab[data-branch="CPL Inter"].active{background:var(--yellow);}
   .branch-tab[data-branch="CPLEx JJ"].active{background:var(--green);}
   .branch-tab[data-branch="CPLEx DEU"].active{background:var(--pink);}
-  .branch-chip{display:inline-block;font-family:var(--sans);font-style:normal;font-size:14px;font-weight:700;background:var(--ink);color:#fff;border-radius:999px;padding:4px 12px;margin-left:8px;vertical-align:middle;letter-spacing:0;}
+  .branch-chip{display:inline-block;font-family:var(--sans);font-style:normal;font-size:14px;font-weight:700;background:var(--fill);color:var(--fill-text);border-radius:999px;padding:4px 12px;margin-left:8px;vertical-align:middle;letter-spacing:0;}
   .nav-item{padding:8px 16px;border-radius:999px;border:var(--border);cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ink);background:var(--white);transition:transform .12s, box-shadow .12s, background .15s;user-select:none;}
   .nav-item svg{width:16px;height:16px;flex-shrink:0;}
   .nav-item:hover{transform:translate(-2px,-2px);box-shadow:var(--pop);}
@@ -57,8 +97,22 @@
   .sync-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--ink);background:var(--white);font-weight:500;}
   .lang-toggle{display:inline-flex;border:var(--border);border-radius:999px;overflow:hidden;background:var(--white);}
   .lang-btn{padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;user-select:none;letter-spacing:.5px;}
-  .lang-btn.active{background:var(--ink);color:#fff;}
+  .lang-btn.active{background:var(--fill);color:var(--fill-text);}
   .login-card .lang-toggle{position:absolute;top:16px;right:16px;}
+
+  /* ---------- THEME SWITCHER ---------- */
+  .theme-switch{position:relative;display:inline-flex;}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:var(--border);background:var(--white);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform .12s;}
+  .theme-btn:hover{transform:translateY(-1px);}
+  .theme-btn svg{width:16px;height:16px;}
+  .theme-menu{display:none;position:absolute;top:calc(100% + 10px);right:0;background:var(--white);border:var(--border);border-radius:16px;box-shadow:var(--shadow-md);padding:8px;min-width:190px;z-index:200;}
+  .theme-menu.open{display:block;}
+  .theme-opt{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;}
+  .theme-opt:hover{background:var(--grey-100);}
+  .theme-opt.active{background:var(--grey-100);}
+  .theme-opt .theme-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--grey-200);}
+  .login-card .theme-switch{position:absolute;top:16px;left:16px;}
+  .login-card .theme-menu{left:0;right:auto;}
   .user-pill{font-size:12.5px;font-weight:600;color:var(--ink);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .user-pill .role{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;background:var(--pink);border:1.5px solid var(--ink);border-radius:999px;padding:1px 8px;}
   .user-form{display:grid;grid-template-columns:2fr 1.4fr 1fr auto;gap:12px;align-items:end;}
@@ -66,7 +120,7 @@
   .user-form .btn{height:44px;}
   .nav-item[data-view="users"].active{background:var(--pink);}
   body.on-users .branch-bar{display:none;}
-  .logout-pill{display:inline-flex;padding:6px 14px;border-radius:999px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;font-size:12.5px;}
+  .logout-pill{display:inline-flex;padding:6px 14px;border-radius:999px;background:var(--fill);color:var(--fill-text);text-decoration:none;font-weight:600;font-size:12.5px;}
   .logout-pill:hover{background:var(--brown);}
 
   /* ---------- MAIN ---------- */
@@ -80,8 +134,8 @@
   .btn{border:var(--border);border-radius:999px;padding:11px 22px;font-size:14.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:transform .12s, box-shadow .12s;font-family:var(--sans);background:var(--white);color:var(--ink);}
   .btn:hover{transform:translate(-2px,-2px);box-shadow:var(--pop);}
   .btn:active{transform:translate(0,0);box-shadow:none;}
-  .btn-primary{background:var(--ink);color:#fff;}
-  .btn-primary:hover{background:var(--ink);}
+  .btn-primary{background:var(--fill);color:var(--fill-text);}
+  .btn-primary:hover{background:var(--fill);}
   .btn-outline{background:var(--white);color:var(--ink);}
   .btn-sm{padding:7px 14px;font-size:13px;}
   .btn-ghost{background:transparent;border-color:transparent;color:var(--grey-700);}
@@ -104,7 +158,7 @@
   th{text-align:left;padding:12px 14px;color:var(--grey-700);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--ink);white-space:nowrap;}
   td{padding:13px 14px;border-bottom:1px solid var(--grey-200);vertical-align:middle;}
   tbody tr:last-child td{border-bottom:none;}
-  tr:hover td{background:#FFF8D9;}
+  tr:hover td{background:var(--row-hover);}
   .pill{border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;display:inline-block;border:1.5px solid var(--ink);color:var(--ink);}
   .pill-blue{background:var(--sky);} .pill-orange{background:var(--peach);} .pill-green{background:#9BE3A9;} .pill-grey{background:var(--grey-100);}
   .mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--grey-400);}
@@ -134,12 +188,12 @@
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .modal-foot{padding:16px 24px;border-top:var(--border);display:flex;justify-content:flex-end;gap:10px;}
   .close-x{background:var(--white);border:1.5px solid var(--ink);border-radius:999px;width:32px;height:32px;cursor:pointer;color:var(--ink);font-size:18px;line-height:1;}
-  .close-x:hover{background:var(--ink);color:#fff;}
+  .close-x:hover{background:var(--fill);color:var(--fill-text);}
   .cust-summary{background:var(--sky);border:var(--border);border-radius:18px;padding:16px 18px;margin-bottom:18px;}
   .cust-summary .nm{font-weight:800;color:var(--ink);font-size:18px;}
   .cust-summary .pts{font-family:var(--sans);font-weight:900;color:var(--ink);font-size:30px;letter-spacing:-1px;}
 
-  .toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:4px 4px 0 var(--green);opacity:0;transform:translateY(10px);transition:all .25s;z-index:100;display:flex;align-items:center;gap:8px;max-width:340px;}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--fill);color:var(--fill-text);padding:12px 20px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:4px 4px 0 var(--green);opacity:0;transform:translateY(10px);transition:all .25s;z-index:100;display:flex;align-items:center;gap:8px;max-width:340px;}
   .toast.show{opacity:1;transform:translateY(0);}
   .empty-state{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--grey-400);text-align:center;padding:34px;}
 
@@ -176,7 +230,7 @@
     .form-grid{grid-template-columns:1fr;}
   }
   ::-webkit-scrollbar{height:8px;width:8px;}
-  ::-webkit-scrollbar-thumb{background:var(--ink);border-radius:4px;}
+  ::-webkit-scrollbar-thumb{background:var(--fill);border-radius:4px;}
 </style>
 </head>
 <body>
@@ -185,6 +239,19 @@
 <div class="login-screen" id="login-screen">
   <div class="login-blob b1"></div><div class="login-blob b2"></div><div class="login-blob b3"></div><div class="login-blob b4"></div>
   <div class="login-card">
+    <span class="theme-switch">
+      <button type="button" class="theme-btn" title="เปลี่ยนธีม" aria-label="เปลี่ยนธีม">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 22a10 10 0 1 1 0-20 6 6 0 0 1 0 12c-1 0-2 1-2 2a2 2 0 0 0 2 2"/></svg>
+      </button>
+      <div class="theme-menu">
+        <div class="theme-opt" data-theme="waxy"><span class="theme-swatch" style="background:linear-gradient(135deg,#F8E45C,#A9DBF5)"></span>สดใส (ค่าเริ่มต้น)</div>
+        <div class="theme-opt" data-theme="dark"><span class="theme-swatch" style="background:#13151a"></span>โหมดมืด</div>
+        <div class="theme-opt" data-theme="classic"><span class="theme-swatch" style="background:#10223E"></span>คลาสสิก</div>
+        <div class="theme-opt" data-theme="minimal"><span class="theme-swatch" style="background:#fafafa"></span>มินิมอล</div>
+        <div class="theme-opt" data-theme="disney"><span class="theme-swatch" style="background:linear-gradient(135deg,#FF7FC2,#79D6FF)"></span>การ์ตูนดิสนีย์</div>
+        <div class="theme-opt" data-theme="cool"><span class="theme-swatch" style="background:linear-gradient(135deg,#0a0e17,#39c7ff)"></span>เท่ (Dark Neon)</div>
+      </div>
+    </span>
     <span class="lang-toggle"><span class="lang-btn" data-lang="th">TH</span><span class="lang-btn" data-lang="en">EN</span></span>
     <img class="logo-img" src="assets/logo.png?v=3" alt="CPL Group">
     <div class="login-head">Loyalty <em>made simple.</em></div>
@@ -210,6 +277,19 @@
         <span id="sync-text">กำลังเชื่อมต่อฐานข้อมูล…</span>
       </span>
       <span class="user-pill" id="user-pill"></span>
+      <span class="theme-switch">
+        <button type="button" class="theme-btn" title="เปลี่ยนธีม" aria-label="เปลี่ยนธีม">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 22a10 10 0 1 1 0-20 6 6 0 0 1 0 12c-1 0-2 1-2 2a2 2 0 0 0 2 2"/></svg>
+        </button>
+        <div class="theme-menu">
+          <div class="theme-opt" data-theme="waxy"><span class="theme-swatch" style="background:linear-gradient(135deg,#F8E45C,#A9DBF5)"></span>สดใส (ค่าเริ่มต้น)</div>
+          <div class="theme-opt" data-theme="dark"><span class="theme-swatch" style="background:#13151a"></span>โหมดมืด</div>
+          <div class="theme-opt" data-theme="classic"><span class="theme-swatch" style="background:#10223E"></span>คลาสสิก</div>
+          <div class="theme-opt" data-theme="minimal"><span class="theme-swatch" style="background:#fafafa"></span>มินิมอล</div>
+          <div class="theme-opt" data-theme="disney"><span class="theme-swatch" style="background:linear-gradient(135deg,#FF7FC2,#79D6FF)"></span>การ์ตูนดิสนีย์</div>
+          <div class="theme-opt" data-theme="cool"><span class="theme-swatch" style="background:linear-gradient(135deg,#0a0e17,#39c7ff)"></span>เท่ (Dark Neon)</div>
+        </div>
+      </span>
       <span class="lang-toggle"><span class="lang-btn" data-lang="th">TH</span><span class="lang-btn" data-lang="en">EN</span></span>
       <a href="#" class="logout-pill" onclick="logout();return false;">ออกจากระบบ</a>
     </div>
@@ -1027,6 +1107,28 @@ function setNavCollapsed(c){
 }
 document.getElementById('menu-toggle').addEventListener('click', ()=>setNavCollapsed(!document.getElementById('app').classList.contains('nav-collapsed')));
 (function(){ let c=false; try{ c = localStorage.getItem('cpl_nav_collapsed')==='1'; }catch(e){} if(!c && window.innerWidth<700) c=true; setNavCollapsed(c); })();
+
+/* ============ THEME SWITCHER ============ */
+const THEMES = ['waxy','dark','classic','minimal','disney','cool'];
+function setTheme(t){
+  if(THEMES.indexOf(t)===-1) t = 'waxy';
+  document.documentElement.setAttribute('data-theme', t==='waxy' ? '' : t);
+  try{ localStorage.setItem('cpl_theme', t); }catch(e){}
+  document.querySelectorAll('.theme-opt').forEach(el=>el.classList.toggle('active', el.dataset.theme===t));
+  document.querySelectorAll('.theme-menu').forEach(el=>el.classList.remove('open'));
+}
+document.querySelectorAll('.theme-btn').forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const menu = btn.closest('.theme-switch').querySelector('.theme-menu');
+    const wasOpen = menu.classList.contains('open');
+    document.querySelectorAll('.theme-menu').forEach(el=>el.classList.remove('open'));
+    if(!wasOpen) menu.classList.add('open');
+  });
+});
+document.querySelectorAll('.theme-opt').forEach(el=>el.addEventListener('click', ()=>setTheme(el.dataset.theme)));
+document.addEventListener('click', ()=>document.querySelectorAll('.theme-menu').forEach(el=>el.classList.remove('open')));
+(function(){ let t='waxy'; try{ t = localStorage.getItem('cpl_theme') || 'waxy'; }catch(e){} setTheme(t); })();
 
 /* ============ INIT ============ */
 enterApp();
