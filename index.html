@@ -433,7 +433,7 @@
       </div>
       <div class="panel" style="padding:0;overflow-x:auto;">
         <table>
-          <thead><tr><th>วันที่</th><th>ชื่อลูกค้า</th><th>ID ผู้ใช้</th><th>แต้ม</th><th>ประเภท</th><th></th></tr></thead>
+          <thead><tr><th>วันที่</th><th>ชื่อลูกค้า</th><th>ID ผู้ใช้</th><th>แต้ม</th><th>ประเภท</th><th>ผู้รับผิดชอบ</th><th></th></tr></thead>
           <tbody id="tx-body"></tbody>
         </table>
         <div id="tx-empty" class="empty-state" style="display:none;">ไม่มีรายการ</div>
@@ -523,6 +523,10 @@
           <option value="__custom__">อื่นๆ (ระบุเอง)</option>
         </select>
         <input type="text" id="t-type-custom" placeholder="ระบุประเภทแต้ม" style="margin-top:8px;display:none;">
+      </div>
+      <div class="form-row">
+        <label>ผู้รับผิดชอบ</label>
+        <input type="text" id="t-responsible" placeholder="ชื่อผู้รับผิดชอบรายการนี้ (ถ้ามี)">
       </div>
     </div>
     <div class="modal-foot">
@@ -688,6 +692,7 @@ function rowToTx(row){
     type: row.type || '',
     date: row.tx_date || '',
     branch: row.branch || 'CPL Inter',
+    responsiblePerson: row.responsible_person || '',
   };
 }
 function txToRow(t){
@@ -699,6 +704,7 @@ function txToRow(t){
     type: t.type || '',
     tx_date: t.date || null,
     branch: t.branch || currentBranch,
+    responsible_person: t.responsiblePerson || '',
   };
 }
 function setSyncStatus(state, text){
@@ -942,6 +948,7 @@ function renderTransactions(){
       <td><span class="mono">${escapeHtml((t.userId||'-').slice(0,16))}${t.userId && t.userId.length>16?'…':''}</span></td>
       <td style="font-weight:700;color:${Number(t.points)<0?'#c23b3b':'var(--navy)'};">${Number(t.points)>0?'+':''}${fmtNum(t.points)}</td>
       <td><span class="pill ${TYPE_PILL[t.type]||'pill-grey'}">${escapeHtml(t.type||'-')}</span></td>
+      <td>${escapeHtml(t.responsiblePerson||'-')}</td>
       <td><button class="icon-btn" title="แก้ไข" onclick="openTxModal('${t.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button></td>
@@ -997,6 +1004,7 @@ function openTxModal(id, prefill){
     document.getElementById('t-fullname').value = t.fullName||'';
     document.getElementById('t-points').value = t.points;
     document.getElementById('t-date').value = t.date||'';
+    document.getElementById('t-responsible').value = t.responsiblePerson||'';
     setTypeSelectValue(t.type);
   }else{
     document.getElementById('tx-modal-title').textContent = 'เพิ่มรายการแต้ม · ' + currentBranch;
@@ -1007,6 +1015,7 @@ function openTxModal(id, prefill){
     document.getElementById('t-points').value = '';
     document.getElementById('t-date').value = new Date().toISOString().slice(0,10);
     document.getElementById('t-type').value = 'โบนัสเมื่อทำบัตร';
+    document.getElementById('t-responsible').value = (me && me.email) || '';
   }
   overlay.classList.add('open');
 }
@@ -1043,6 +1052,7 @@ async function saveTx(){
     points: Number(pointsRaw)||0,
     type,
     date: document.getElementById('t-date').value,
+    responsiblePerson: document.getElementById('t-responsible').value.trim(),
   };
   const id = document.getElementById('tx-id').value;
   try{
@@ -1095,9 +1105,8 @@ function exportCSV(kind){
     headers = ['Customer Name','Full Name','User ID','Total Points','Transactions'];
     rows = buildCustomers().sort((a,b)=>b.points-a.points).map(c=>[c.customerName,c.fullName,c.userId,c.points,c.count]);
   }else{
-    headers = ['Date','Customer Name','Full Name','User ID','Points','Type'];
-    rows = txs.map(t=>[t.date,t.customerName,t.fullName,t.userId,t.points,t.type]);
-    headers = ['Date','Customer Name','Full Name','User ID','Points','Type'];
+    headers = ['Date','Customer Name','Full Name','User ID','Points','Type','Responsible Person'];
+    rows = txs.map(t=>[t.date,t.customerName,t.fullName,t.userId,t.points,t.type,t.responsiblePerson]);
   }
   const csvRows = rows.map(r=> r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(','));
   const csv = [headers.join(','), ...csvRows].join('\n');
