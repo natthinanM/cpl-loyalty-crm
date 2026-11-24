@@ -94,6 +94,7 @@
   .nav-item[data-view="customers"].active{background:var(--sky);}
   .nav-item[data-view="transactions"].active{background:var(--peach);}
   .nav-item[data-view="calendar"].active{background:var(--blue);}
+  .nav-item[data-view="meetings"].active{background:var(--pink);}
   .sidebar-foot{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--grey-700);}
   .sidebar-foot .brand-name{display:none;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--ink);background:var(--white);font-weight:500;}
@@ -394,6 +395,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
         <span>ปฏิทิน</span>
       </div>
+      <div class="nav-item" data-view="meetings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <span>ประชุม</span>
+      </div>
       <div class="nav-item admin-only" data-view="users" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-.5a6.5 6.5 0 0 1 13 0v.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20v-.5a6.5 6.5 0 0 0-2.3-5"/></svg>
         <span>ผู้ใช้งาน</span>
@@ -507,6 +512,37 @@
         </div>
         <div class="cal-grid" id="cal-dow-row"></div>
         <div class="cal-grid" id="cal-grid" style="margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <!-- MEETINGS (internal, org-wide, Google Calendar sync) -->
+    <div class="view" id="view-meetings" style="display:none;">
+      <div class="topbar">
+        <div><div class="kicker">Internal meetings —</div><h1>ประชุม<em> ภายในองค์กร</em></h1><p class="subtitle">นัดประชุมทีม เชื่อมกับ Google Calendar ของคุณ พร้อมส่ง invite ให้ผู้เข้าร่วม</p></div>
+        <button class="btn btn-primary" onclick="openMeetingModal(null, fmtISODate(new Date()))">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          เพิ่มประชุม
+        </button>
+      </div>
+      <div class="panel" style="background:var(--grey-100);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div id="gcal-status-banner" style="font-size:13px;font-weight:600;">ยังไม่ได้เชื่อมต่อ Google Calendar ของคุณ</div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="connectGoogleCalendar()">เชื่อมต่อ Google Calendar ของฉัน</button>
+      </div>
+      <div class="panel">
+        <div class="cal-toolbar">
+          <div class="cal-nav">
+            <button type="button" onclick="calMeetingShiftMonth(-1)" title="เดือนก่อนหน้า">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="cal-month-label" id="meeting-cal-month-label">-</div>
+            <button type="button" onclick="calMeetingShiftMonth(1)" title="เดือนถัดไป">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="calMeetingGoToday()">วันนี้</button>
+        </div>
+        <div class="cal-grid" id="meeting-cal-dow-row"></div>
+        <div class="cal-grid" id="meeting-cal-grid" style="margin-top:6px;"></div>
       </div>
     </div>
 
@@ -633,57 +669,24 @@
     <div class="modal-head"><h2 id="appt-modal-title">เพิ่มนัดหมาย</h2><button class="close-x" onclick="closeApptModal()">&times;</button></div>
     <div class="modal-body">
       <input type="hidden" id="appt-id">
-      <div class="form-row">
-        <label>ประเภท</label>
-        <select id="a-kind" onchange="toggleApptKindFields()">
-          <option value="customer">นัดหมาย/ติดตามลูกค้า</option>
-          <option value="meeting">ประชุมภายในองค์กร</option>
-        </select>
-      </div>
-
       <div class="form-grid">
         <div class="form-row">
           <label>วันที่ *</label>
           <input type="date" id="a-date">
         </div>
-        <div class="form-row" id="a-time-row">
+        <div class="form-row">
           <label>เวลา</label>
           <input type="time" id="a-time">
         </div>
       </div>
-
-      <!-- CUSTOMER-KIND FIELDS -->
-      <div id="appt-fields-customer">
-        <div class="form-row">
-          <label>ชื่อลูกค้า — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง</label>
-          <input type="text" id="a-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
-        </div>
-        <div class="form-row">
-          <label>ID ผู้ใช้</label>
-          <input type="text" id="a-userid" placeholder="ID ผู้ใช้ของลูกค้า (ถ้ามี)">
-        </div>
+      <div class="form-row">
+        <label>ชื่อลูกค้า — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง</label>
+        <input type="text" id="a-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
       </div>
-
-      <!-- MEETING-KIND FIELDS -->
-      <div id="appt-fields-meeting" style="display:none;">
-        <div class="form-row">
-          <label>หัวข้อประชุม *</label>
-          <input type="text" id="a-title" placeholder="เช่น ประชุมทีมขายประจำสัปดาห์">
-        </div>
-        <div class="form-row">
-          <label>เวลาสิ้นสุด</label>
-          <input type="time" id="a-endtime">
-        </div>
-        <div class="form-row">
-          <label>ผู้เข้าร่วม (อีเมล คั่นด้วยจุลภาค)</label>
-          <input type="text" id="a-attendees" placeholder="name1@cpl-inter.com, name2@cpl-inter.com">
-        </div>
-        <div class="form-row" style="background:var(--grey-100);border-radius:14px;padding:12px 14px;">
-          <div id="gcal-status" style="font-size:13px;font-weight:600;margin-bottom:8px;">ยังไม่ได้เชื่อมต่อ Google Calendar ของคุณ</div>
-          <button type="button" class="btn btn-outline btn-sm" id="gcal-connect-btn" onclick="connectGoogleCalendar()">เชื่อมต่อ Google Calendar ของฉัน</button>
-        </div>
+      <div class="form-row">
+        <label>ID ผู้ใช้</label>
+        <input type="text" id="a-userid" placeholder="ID ผู้ใช้ของลูกค้า (ถ้ามี)">
       </div>
-
       <div class="form-row">
         <label>สถานะ</label>
         <select id="a-status">
@@ -694,7 +697,7 @@
       </div>
       <div class="form-row">
         <label>หมายเหตุ</label>
-        <textarea id="a-note" rows="3" placeholder="รายละเอียดการนัดหมาย/ติดตาม/ประชุม" style="width:100%;padding:12px 16px;border-radius:14px;border:var(--border);font-size:14px;font-family:var(--sans);resize:vertical;"></textarea>
+        <textarea id="a-note" rows="3" placeholder="รายละเอียดการนัดหมาย/ติดตาม" style="width:100%;padding:12px 16px;border-radius:14px;border:var(--border);font-size:14px;font-family:var(--sans);resize:vertical;"></textarea>
       </div>
       <div class="form-row">
         <label>ผู้รับผิดชอบ</label>
@@ -705,6 +708,77 @@
       <button class="btn btn-ghost" id="appt-delete-btn" onclick="deleteAppt()" style="display:none;margin-right:auto;color:#c23b3b;">ลบนัดหมาย</button>
       <button class="btn btn-outline" onclick="closeApptModal()">ยกเลิก</button>
       <button class="btn btn-primary" id="appt-save-btn" onclick="saveAppt()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEETING DAY DETAIL MODAL -->
+<div class="overlay" id="meeting-day-overlay">
+  <div class="modal">
+    <div class="modal-head"><h2 id="meeting-day-modal-title">วันที่</h2><button class="close-x" onclick="closeMeetingDayModal()">&times;</button></div>
+    <div class="modal-body">
+      <div id="meeting-day-list"></div>
+      <button class="btn btn-outline btn-sm" id="meeting-day-add-btn">+ เพิ่มประชุมวันนี้</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeMeetingDayModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MEETING MODAL -->
+<div class="overlay" id="meeting-overlay">
+  <div class="modal">
+    <div class="modal-head"><h2 id="meeting-modal-title">เพิ่มประชุม</h2><button class="close-x" onclick="closeMeetingModal()">&times;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="mt-id">
+      <div class="form-row">
+        <label>หัวข้อประชุม *</label>
+        <input type="text" id="mt-title" placeholder="เช่น ประชุมทีมขายประจำสัปดาห์">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>วันที่ *</label>
+          <input type="date" id="mt-date">
+        </div>
+        <div class="form-row">
+          <label>เวลาเริ่ม</label>
+          <input type="time" id="mt-time">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>เวลาสิ้นสุด</label>
+        <input type="time" id="mt-endtime">
+      </div>
+      <div class="form-row">
+        <label>ผู้เข้าร่วม (อีเมล คั่นด้วยจุลภาค)</label>
+        <input type="text" id="mt-attendees" placeholder="name1@cpl-inter.com, name2@cpl-inter.com">
+      </div>
+      <div class="form-row">
+        <label>หมายเหตุ</label>
+        <textarea id="mt-note" rows="3" placeholder="วาระ/รายละเอียดการประชุม" style="width:100%;padding:12px 16px;border-radius:14px;border:var(--border);font-size:14px;font-family:var(--sans);resize:vertical;"></textarea>
+      </div>
+      <div class="form-row">
+        <label>สถานะ</label>
+        <select id="mt-status">
+          <option value="pending">รอดำเนินการ</option>
+          <option value="done">เสร็จแล้ว</option>
+          <option value="cancelled">ยกเลิก</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>ผู้นัดประชุม</label>
+        <input type="text" id="mt-responsible" placeholder="ชื่อผู้นัดประชุมนี้">
+      </div>
+      <div class="form-row" style="background:var(--grey-100);border-radius:14px;padding:12px 14px;">
+        <div id="gcal-status" style="font-size:13px;font-weight:600;margin-bottom:8px;">ยังไม่ได้เชื่อมต่อ Google Calendar ของคุณ</div>
+        <button type="button" class="btn btn-outline btn-sm" id="gcal-connect-btn" onclick="connectGoogleCalendar()">เชื่อมต่อ Google Calendar ของฉัน</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="meeting-delete-btn" onclick="deleteMeeting()" style="display:none;margin-right:auto;color:#c23b3b;">ลบประชุม</button>
+      <button class="btn btn-outline" onclick="closeMeetingModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="meeting-save-btn" onclick="saveMeeting()">บันทึกและส่ง Invite</button>
     </div>
   </div>
 </div>
@@ -985,6 +1059,7 @@ async function boot(){
   }
   applyBranch();
   applyBranchAppts();
+  refreshMeetingsFromAll();
   initHashView();
   renderAll();
   checkNotifications();
@@ -1092,7 +1167,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
 });
 function initHashView(){
   const h = (location.hash||'').replace('#','');
-  const valid = ['dashboard','customers','transactions','calendar'].concat(me && me.role==='admin' ? ['users'] : []);
+  const valid = ['dashboard','customers','transactions','calendar','meetings'].concat(me && me.role==='admin' ? ['users'] : []);
   currentView = valid.includes(h) ? h : 'dashboard';
   document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active', i.dataset.view===currentView));
   document.querySelectorAll('.view').forEach(v=>v.style.display='none');
@@ -1371,6 +1446,7 @@ function renderAll(){
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
   if(currentView==='calendar') renderCalendar();
+  if(currentView==='meetings') renderMeetingsCalendar();
 }
 document.getElementById('cust-search').addEventListener('input', ()=>{ if(currentView==='customers') renderCustomers(); });
 document.getElementById('tx-search').addEventListener('input', ()=>{ if(currentView==='transactions') renderTransactions(); });
@@ -1512,7 +1588,7 @@ setInterval(async ()=>{
   try{
     allTxs = await loadFromSupabase();
     applyBranch();
-    try{ allAppts = await loadAppointmentsFromSupabase(); applyBranchAppts(); }catch(e){}
+    try{ allAppts = await loadAppointmentsFromSupabase(); applyBranchAppts(); refreshMeetingsFromAll(); }catch(e){}
     renderAll();
     checkNotifications();
   }catch(e){ /* silent — next tick will retry */ }
@@ -1586,24 +1662,29 @@ function connectGoogleCalendar(){
   tc.requestAccessToken({ prompt: gcalAccessToken ? '' : 'consent' });
 }
 function refreshGCalStatusUI(){
-  const el = document.getElementById('gcal-status');
-  const btn = document.getElementById('gcal-connect-btn');
-  if(!el || !btn) return;
+  const connected = gcalAccessToken && Date.now() < gcalTokenExpiresAt;
+  let statusText, btnText, showBtn = true;
   if(!gcalConfigured()){
-    el.textContent = 'ยังไม่ได้ตั้งค่า Google Calendar ในระบบ (ต้องตั้งค่า OAuth Client ID ก่อน)';
-    btn.style.display = 'none';
-    return;
-  }
-  btn.style.display = '';
-  if(gcalAccessToken && Date.now() < gcalTokenExpiresAt){
-    el.textContent = 'เชื่อมต่อแล้ว: ' + (gcalConnectedEmail || 'บัญชี Google ของคุณ');
-    btn.textContent = 'เชื่อมต่อใหม่ / สลับบัญชี';
+    statusText = 'ยังไม่ได้ตั้งค่า Google Calendar ในระบบ (ต้องตั้งค่า OAuth Client ID ก่อน)';
+    btnText = '';
+    showBtn = false;
+  }else if(connected){
+    statusText = 'เชื่อมต่อแล้ว: ' + (gcalConnectedEmail || 'บัญชี Google ของคุณ');
+    btnText = 'เชื่อมต่อใหม่ / สลับบัญชี';
   }else{
-    el.textContent = gcalConnectedEmail
+    statusText = gcalConnectedEmail
       ? ('เซสชันหมดอายุ — กดเชื่อมต่ออีกครั้ง (' + gcalConnectedEmail + ')')
       : 'ยังไม่ได้เชื่อมต่อ Google Calendar ของคุณ';
-    btn.textContent = 'เชื่อมต่อ Google Calendar ของฉัน';
+    btnText = 'เชื่อมต่อ Google Calendar ของฉัน';
   }
+  [['gcal-status','gcal-connect-btn'], ['gcal-status-banner', null]].forEach(([elId, btnId])=>{
+    const el = document.getElementById(elId);
+    if(el) el.textContent = statusText;
+    if(btnId){
+      const btn = document.getElementById(btnId);
+      if(btn){ btn.style.display = showBtn ? '' : 'none'; if(btnText) btn.textContent = btnText; }
+    }
+  });
 }
 async function ensureFreshGCalToken(){
   if(gcalAccessToken && Date.now() < gcalTokenExpiresAt) return gcalAccessToken;
@@ -1776,47 +1857,32 @@ function closeDayModal(){ document.getElementById('day-overlay').classList.remov
 document.getElementById('day-overlay').addEventListener('click', e=>{ if(e.target.id==='day-overlay') closeDayModal(); });
 
 /* ---- Add/edit appointment modal ---- */
-function toggleApptKindFields(){
-  const kind = document.getElementById('a-kind').value;
-  document.getElementById('appt-fields-customer').style.display = kind==='meeting' ? 'none' : 'block';
-  document.getElementById('appt-fields-meeting').style.display = kind==='meeting' ? 'block' : 'none';
-  refreshGCalStatusUI();
-}
 function openApptModal(id, prefillDateISO){
   const overlay = document.getElementById('appt-overlay');
   const delBtn = document.getElementById('appt-delete-btn');
   delBtn.style.display = id ? 'inline-flex' : 'none';
   if(id){
     const a = appts.find(x=>x.id===id);
-    document.getElementById('appt-modal-title').textContent = a.kind==='meeting' ? 'แก้ไขประชุม' : 'แก้ไขนัดหมาย';
+    document.getElementById('appt-modal-title').textContent = 'แก้ไขนัดหมาย';
     document.getElementById('appt-id').value = a.id;
-    document.getElementById('a-kind').value = a.kind || 'customer';
     document.getElementById('a-date').value = a.date||'';
     document.getElementById('a-time').value = a.time||'';
-    document.getElementById('a-endtime').value = a.endTime||'';
     document.getElementById('a-customername').value = a.customerName||'';
     document.getElementById('a-userid').value = a.userId||'';
-    document.getElementById('a-title').value = a.title||'';
-    document.getElementById('a-attendees').value = (a.attendees||[]).join(', ');
     document.getElementById('a-status').value = a.status||'pending';
     document.getElementById('a-note').value = a.note||'';
     document.getElementById('a-responsible').value = a.responsiblePerson||'';
   }else{
     document.getElementById('appt-modal-title').textContent = 'เพิ่มนัดหมาย · ' + currentBranch;
     document.getElementById('appt-id').value = '';
-    document.getElementById('a-kind').value = 'customer';
     document.getElementById('a-date').value = prefillDateISO || fmtISODate(new Date());
     document.getElementById('a-time').value = '';
-    document.getElementById('a-endtime').value = '';
     document.getElementById('a-customername').value = '';
     document.getElementById('a-userid').value = '';
-    document.getElementById('a-title').value = '';
-    document.getElementById('a-attendees').value = '';
     document.getElementById('a-status').value = 'pending';
     document.getElementById('a-note').value = '';
     document.getElementById('a-responsible').value = (me && me.email) || '';
   }
-  toggleApptKindFields();
   overlay.classList.add('open');
 }
 function closeApptModal(){ document.getElementById('appt-overlay').classList.remove('open'); }
@@ -1825,18 +1891,10 @@ document.getElementById('appt-overlay').addEventListener('click', e=>{ if(e.targ
 async function saveAppt(){
   const date = document.getElementById('a-date').value;
   if(!date){ toast('กรุณาเลือกวันที่'); return; }
-  const kind = document.getElementById('a-kind').value;
-  if(kind==='meeting' && !document.getElementById('a-title').value.trim()){
-    toast('กรุณากรอกหัวข้อประชุม'); return;
-  }
-  const attendees = document.getElementById('a-attendees').value.split(',').map(s=>s.trim()).filter(Boolean);
   const payload = {
-    kind,
+    kind: 'customer',
     date,
     time: document.getElementById('a-time').value || '',
-    endTime: document.getElementById('a-endtime').value || '',
-    title: document.getElementById('a-title').value.trim(),
-    attendees,
     customerName: document.getElementById('a-customername').value.trim(),
     userId: document.getElementById('a-userid').value.trim(),
     status: document.getElementById('a-status').value,
@@ -1844,24 +1902,7 @@ async function saveAppt(){
     responsiblePerson: document.getElementById('a-responsible').value.trim(),
   };
   const id = document.getElementById('appt-id').value;
-  const saveBtn = document.getElementById('appt-save-btn');
-  saveBtn.disabled = true;
   try{
-    // For meetings, create/update the event on the connected Google Calendar first
-    if(kind==='meeting' && gcalAccessToken){
-      try{
-        const existing = id ? appts.find(x=>x.id===id) : null;
-        const gEvent = await upsertGoogleCalendarEvent(payload, existing && existing.googleEventId);
-        if(gEvent){
-          payload.googleEventId = gEvent.id || (existing && existing.googleEventId) || '';
-          payload.meetLink = (gEvent.hangoutLink) || (existing && existing.meetLink) || '';
-          payload.googleCalendarOwner = gcalConnectedEmail || '';
-        }
-      }catch(ge){
-        console.error('Google Calendar sync failed', ge);
-        toast('บันทึกในระบบสำเร็จ แต่ซิงก์ไป Google Calendar ไม่สำเร็จ: ' + (ge.message||ge));
-      }
-    }
     if(id){
       payload.branch = (appts.find(x=>x.id===id)||{}).branch || currentBranch;
       await updateApptRow(id, payload);
@@ -1869,13 +1910,13 @@ async function saveAppt(){
       Object.assign(a, payload);
       const idxAll = allAppts.findIndex(x=>x.id===id);
       if(idxAll>-1) Object.assign(allAppts[idxAll], payload);
-      toast(kind==='meeting' ? 'บันทึกการแก้ไขประชุมแล้ว' : 'บันทึกการแก้ไขนัดหมายแล้ว');
+      toast('บันทึกการแก้ไขนัดหมายแล้ว');
     }else{
       payload.branch = currentBranch;
       const saved = await insertAppt(payload);
       allAppts.unshift(saved);
       applyBranchAppts();
-      toast(kind==='meeting' ? 'เพิ่มประชุมแล้ว' : 'เพิ่มนัดหมายแล้ว');
+      toast('เพิ่มนัดหมายแล้ว');
     }
     closeApptModal();
     if(document.getElementById('day-overlay').classList.contains('open') && activeDayISO) openDayModal(activeDayISO);
@@ -1883,8 +1924,6 @@ async function saveAppt(){
   }catch(e){
     console.error(e);
     toast('บันทึกไม่สำเร็จ: ' + (e.message||e));
-  }finally{
-    saveBtn.disabled = false;
   }
 }
 async function deleteAppt(){
@@ -1899,6 +1938,221 @@ async function deleteAppt(){
     if(document.getElementById('day-overlay').classList.contains('open') && activeDayISO) openDayModal(activeDayISO);
     renderCalendar();
     toast('ลบนัดหมายแล้ว');
+  }catch(e){
+    console.error(e);
+    toast('ลบไม่สำเร็จ: ' + (e.message||e));
+  }
+}
+
+/* ============ MEETINGS (internal, org-wide, Google Calendar sync) ============ */
+let meetings = [];
+function refreshMeetingsFromAll(){
+  meetings = allAppts.filter(a=>a.kind==='meeting');
+}
+let calMeetingMonth = (function(){ const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+function calMeetingShiftMonth(delta){
+  calMeetingMonth = new Date(calMeetingMonth.getFullYear(), calMeetingMonth.getMonth()+delta, 1);
+  renderMeetingsCalendar();
+}
+function calMeetingGoToday(){
+  const d = new Date();
+  calMeetingMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  renderMeetingsCalendar();
+}
+function renderMeetingsCalendar(){
+  refreshGCalStatusUI();
+  const label = (LANG==='en')
+    ? calMeetingMonth.toLocaleDateString('en-GB',{month:'long',year:'numeric'})
+    : (CAL_MONTH_TH[calMeetingMonth.getMonth()] + ' ' + (calMeetingMonth.getFullYear()+543));
+  document.getElementById('meeting-cal-month-label').textContent = label;
+
+  const dowRow = document.getElementById('meeting-cal-dow-row');
+  dowRow.innerHTML = CAL_DOW_TH.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const year = calMeetingMonth.getFullYear(), month = calMeetingMonth.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const todayISO = fmtISODate(new Date());
+
+  const meetingCountByDate = {};
+  meetings.forEach(a=>{ if(a.date) meetingCountByDate[a.date] = (meetingCountByDate[a.date]||0) + 1; });
+
+  const cells = [];
+  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+  for(let i=0;i<totalCells;i++){
+    let cellDate, otherMonth=false;
+    const dayNum = i - firstDow + 1;
+    if(dayNum < 1){
+      cellDate = new Date(year, month-1, daysInPrevMonth + dayNum);
+      otherMonth = true;
+    }else if(dayNum > daysInMonth){
+      cellDate = new Date(year, month+1, dayNum - daysInMonth);
+      otherMonth = true;
+    }else{
+      cellDate = new Date(year, month, dayNum);
+    }
+    const iso = fmtISODate(cellDate);
+    const meetN = meetingCountByDate[iso] || 0;
+    const badges = meetN ? `<span class="cal-badge meeting">ประชุม ${meetN}</span>` : '';
+    cells.push(`
+      <div class="cal-cell${otherMonth?' other-month':''}${iso===todayISO?' today':''}" onclick="openMeetingDayModal('${iso}')">
+        <div class="cal-daynum">${cellDate.getDate()}</div>
+        <div class="cal-badges">${badges}</div>
+      </div>
+    `);
+  }
+  document.getElementById('meeting-cal-grid').innerHTML = cells.join('');
+}
+
+function renderMeetingRow(a){
+  const timeLabel = a.time ? escapeHtml(a.time) + (a.endTime ? '–'+escapeHtml(a.endTime) : '') : 'ไม่ระบุเวลา';
+  const attendeesLine = (a.attendees && a.attendees.length)
+    ? '<div class="appt-note">ผู้เข้าร่วม: '+escapeHtml(a.attendees.join(', '))+'</div>' : '';
+  const meetLine = a.meetLink
+    ? '<div class="appt-note"><a href="'+escapeHtml(a.meetLink)+'" target="_blank" rel="noopener">เข้าร่วม Google Meet</a></div>' : '';
+  return `
+    <div class="appt-row">
+      <div class="appt-main">
+        <div class="appt-time">${timeLabel}</div>
+        <div class="appt-cust">📅 ${escapeHtml(a.title || 'ประชุมภายใน')}</div>
+        ${attendeesLine}
+        ${meetLine}
+        ${a.note ? '<div class="appt-note">'+escapeHtml(a.note)+'</div>' : ''}
+        <span class="appt-status ${a.status}">${a.status==='done'?'เสร็จแล้ว':a.status==='cancelled'?'ยกเลิก':'รอดำเนินการ'}</span>
+      </div>
+      <div class="appt-actions">
+        <button class="icon-btn" title="แก้ไข" onclick="openMeetingModal('${a.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+let activeMeetingDayISO = null;
+function openMeetingDayModal(iso){
+  activeMeetingDayISO = iso;
+  const dt = new Date(iso+'T00:00:00');
+  document.getElementById('meeting-day-modal-title').textContent = fmtDate(iso) + (LANG==='en' ? '' : (' (' + CAL_DOW_TH[dt.getDay()] + ')'));
+  const dayMeetings = meetings.filter(a=>a.date===iso).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  document.getElementById('meeting-day-list').innerHTML = dayMeetings.length
+    ? dayMeetings.map(renderMeetingRow).join('')
+    : '<div class="empty-state" style="padding:12px 0;">ไม่มีประชุมวันนี้</div>';
+  document.getElementById('meeting-day-add-btn').onclick = ()=>{ closeMeetingDayModal(); openMeetingModal(null, iso); };
+  document.getElementById('meeting-day-overlay').classList.add('open');
+}
+function closeMeetingDayModal(){ document.getElementById('meeting-day-overlay').classList.remove('open'); }
+document.getElementById('meeting-day-overlay').addEventListener('click', e=>{ if(e.target.id==='meeting-day-overlay') closeMeetingDayModal(); });
+
+function openMeetingModal(id, prefillDateISO){
+  const overlay = document.getElementById('meeting-overlay');
+  const delBtn = document.getElementById('meeting-delete-btn');
+  delBtn.style.display = id ? 'inline-flex' : 'none';
+  if(id){
+    const a = meetings.find(x=>x.id===id);
+    document.getElementById('meeting-modal-title').textContent = 'แก้ไขประชุม';
+    document.getElementById('mt-id').value = a.id;
+    document.getElementById('mt-title').value = a.title||'';
+    document.getElementById('mt-date').value = a.date||'';
+    document.getElementById('mt-time').value = a.time||'';
+    document.getElementById('mt-endtime').value = a.endTime||'';
+    document.getElementById('mt-attendees').value = (a.attendees||[]).join(', ');
+    document.getElementById('mt-note').value = a.note||'';
+    document.getElementById('mt-status').value = a.status||'pending';
+    document.getElementById('mt-responsible').value = a.responsiblePerson||'';
+  }else{
+    document.getElementById('meeting-modal-title').textContent = 'เพิ่มประชุม';
+    document.getElementById('mt-id').value = '';
+    document.getElementById('mt-title').value = '';
+    document.getElementById('mt-date').value = prefillDateISO || fmtISODate(new Date());
+    document.getElementById('mt-time').value = '';
+    document.getElementById('mt-endtime').value = '';
+    document.getElementById('mt-attendees').value = '';
+    document.getElementById('mt-note').value = '';
+    document.getElementById('mt-status').value = 'pending';
+    document.getElementById('mt-responsible').value = (me && me.email) || '';
+  }
+  refreshGCalStatusUI();
+  overlay.classList.add('open');
+}
+function closeMeetingModal(){ document.getElementById('meeting-overlay').classList.remove('open'); }
+document.getElementById('meeting-overlay').addEventListener('click', e=>{ if(e.target.id==='meeting-overlay') closeMeetingModal(); });
+
+async function saveMeeting(){
+  const date = document.getElementById('mt-date').value;
+  const title = document.getElementById('mt-title').value.trim();
+  if(!date){ toast('กรุณาเลือกวันที่'); return; }
+  if(!title){ toast('กรุณากรอกหัวข้อประชุม'); return; }
+  const attendees = document.getElementById('mt-attendees').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const payload = {
+    kind: 'meeting',
+    branch: currentBranch,
+    title,
+    date,
+    time: document.getElementById('mt-time').value || '',
+    endTime: document.getElementById('mt-endtime').value || '',
+    attendees,
+    note: document.getElementById('mt-note').value.trim(),
+    status: document.getElementById('mt-status').value,
+    responsiblePerson: document.getElementById('mt-responsible').value.trim(),
+  };
+  const id = document.getElementById('mt-id').value;
+  const saveBtn = document.getElementById('meeting-save-btn');
+  saveBtn.disabled = true;
+  try{
+    if(!gcalConfigured()){
+      toast('ยังไม่ได้ตั้งค่า Google Calendar ในระบบ — บันทึกไว้ในระบบก่อน แจ้งผู้ดูแลระบบให้ตั้งค่า');
+    }else if(!gcalAccessToken){
+      toast('กรุณาเชื่อมต่อ Google Calendar ของคุณก่อนบันทึก');
+      saveBtn.disabled = false;
+      return;
+    }else{
+      try{
+        const existing = id ? meetings.find(x=>x.id===id) : null;
+        const gEvent = await upsertGoogleCalendarEvent(payload, existing && existing.googleEventId);
+        if(gEvent){
+          payload.googleEventId = gEvent.id || (existing && existing.googleEventId) || '';
+          payload.meetLink = (gEvent.hangoutLink) || (existing && existing.meetLink) || '';
+          payload.googleCalendarOwner = gcalConnectedEmail || '';
+        }
+      }catch(ge){
+        console.error('Google Calendar sync failed', ge);
+        toast('บันทึกในระบบสำเร็จ แต่สร้างนัดใน Google Calendar ไม่สำเร็จ: ' + (ge.message||ge));
+      }
+    }
+    if(id){
+      await updateApptRow(id, payload);
+      const idxAll = allAppts.findIndex(x=>x.id===id);
+      if(idxAll>-1) Object.assign(allAppts[idxAll], payload);
+      toast('บันทึกการแก้ไขประชุมแล้ว');
+    }else{
+      const saved = await insertAppt(payload);
+      allAppts.unshift(saved);
+      toast('เพิ่มประชุมและส่ง invite แล้ว');
+    }
+    refreshMeetingsFromAll();
+    closeMeetingModal();
+    if(document.getElementById('meeting-day-overlay').classList.contains('open') && activeMeetingDayISO) openMeetingDayModal(activeMeetingDayISO);
+    renderMeetingsCalendar();
+  }catch(e){
+    console.error(e);
+    toast('บันทึกไม่สำเร็จ: ' + (e.message||e));
+  }finally{
+    saveBtn.disabled = false;
+  }
+}
+async function deleteMeeting(){
+  const id = document.getElementById('mt-id').value;
+  if(!id) return;
+  if(!window.confirm('ยืนยันลบประชุมนี้?')) return;
+  try{
+    await deleteApptRow(id);
+    allAppts = allAppts.filter(x=>x.id!==id);
+    refreshMeetingsFromAll();
+    closeMeetingModal();
+    if(document.getElementById('meeting-day-overlay').classList.contains('open') && activeMeetingDayISO) openMeetingDayModal(activeMeetingDayISO);
+    renderMeetingsCalendar();
+    toast('ลบประชุมแล้ว');
   }catch(e){
     console.error(e);
     toast('ลบไม่สำเร็จ: ' + (e.message||e));
