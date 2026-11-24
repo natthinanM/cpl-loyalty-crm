@@ -93,8 +93,7 @@
   .nav-item[data-view="dashboard"].active{background:var(--yellow);}
   .nav-item[data-view="customers"].active{background:var(--sky);}
   .nav-item[data-view="transactions"].active{background:var(--peach);}
-  .nav-item[data-view="calendar"].active{background:var(--blue);}
-  .nav-item[data-view="meetings"].active{background:var(--pink);}
+  .nav-item[data-view="meetings"].active{background:var(--blue);}
   .sidebar-foot{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--grey-700);}
   .sidebar-foot .brand-name{display:none;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--ink);background:var(--white);font-weight:500;}
@@ -391,13 +390,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 5h18M3 5l6 7v7l6-3v-4l6-7"/></svg>
         <span>รายการแต้ม</span>
       </div>
-      <div class="nav-item" data-view="calendar">
+      <div class="nav-item" data-view="meetings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
         <span>ปฏิทิน</span>
-      </div>
-      <div class="nav-item" data-view="meetings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-        <span>ประชุม</span>
       </div>
       <div class="nav-item admin-only" data-view="users" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-.5a6.5 6.5 0 0 1 13 0v.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20v-.5a6.5 6.5 0 0 0-2.3-5"/></svg>
@@ -488,33 +483,6 @@
       </div>
     </div>
     <!-- USERS (admin only) -->
-    <!-- CALENDAR -->
-    <div class="view" id="view-calendar" style="display:none;">
-      <div class="topbar">
-        <div><div class="kicker">Appointments & history —</div><h1>ปฏิทิน<span class="branch-chip"></span></h1><p class="subtitle">นัดหมาย/ติดตามลูกค้า และประวัติรายการแต้มรายวัน</p></div>
-        <button class="btn btn-primary" onclick="openApptModal(null, fmtISODate(new Date()))">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          เพิ่มนัดหมาย
-        </button>
-      </div>
-      <div class="panel">
-        <div class="cal-toolbar">
-          <div class="cal-nav">
-            <button type="button" onclick="calShiftMonth(-1)" title="เดือนก่อนหน้า">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <div class="cal-month-label" id="cal-month-label">-</div>
-            <button type="button" onclick="calShiftMonth(1)" title="เดือนถัดไป">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-          </div>
-          <button class="btn btn-outline btn-sm" onclick="calGoToday()">วันนี้</button>
-        </div>
-        <div class="cal-grid" id="cal-dow-row"></div>
-        <div class="cal-grid" id="cal-grid" style="margin-top:6px;"></div>
-      </div>
-    </div>
-
     <!-- MEETINGS (internal, org-wide, Google Calendar sync) -->
     <div class="view" id="view-meetings" style="display:none;">
       <div class="topbar">
@@ -643,75 +611,6 @@
   </div>
 </div>
 
-<!-- DAY DETAIL MODAL (calendar) -->
-<div class="overlay" id="day-overlay">
-  <div class="modal">
-    <div class="modal-head"><h2 id="day-modal-title">วันที่</h2><button class="close-x" onclick="closeDayModal()">&times;</button></div>
-    <div class="modal-body">
-      <div class="day-sec-title">นัดหมาย/ติดตามลูกค้า</div>
-      <div id="day-appt-list"></div>
-      <button class="btn btn-outline btn-sm" id="day-add-appt-btn" style="margin-bottom:8px;">+ เพิ่มนัดหมายวันนี้</button>
-      <div class="day-sec-title">ประวัติรายการแต้มวันนี้</div>
-      <div class="panel" style="padding:0;">
-        <div id="day-tx-list"></div>
-        <div id="day-tx-empty" class="empty-state" style="display:none;padding:16px;">ไม่มีรายการแต้มวันนี้</div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline" onclick="closeDayModal()">ปิด</button>
-    </div>
-  </div>
-</div>
-
-<!-- ADD/EDIT APPOINTMENT MODAL -->
-<div class="overlay" id="appt-overlay">
-  <div class="modal">
-    <div class="modal-head"><h2 id="appt-modal-title">เพิ่มนัดหมาย</h2><button class="close-x" onclick="closeApptModal()">&times;</button></div>
-    <div class="modal-body">
-      <input type="hidden" id="appt-id">
-      <div class="form-grid">
-        <div class="form-row">
-          <label>วันที่ *</label>
-          <input type="date" id="a-date">
-        </div>
-        <div class="form-row">
-          <label>เวลา</label>
-          <input type="time" id="a-time">
-        </div>
-      </div>
-      <div class="form-row">
-        <label>ชื่อลูกค้า — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง</label>
-        <input type="text" id="a-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
-      </div>
-      <div class="form-row">
-        <label>ID ผู้ใช้</label>
-        <input type="text" id="a-userid" placeholder="ID ผู้ใช้ของลูกค้า (ถ้ามี)">
-      </div>
-      <div class="form-row">
-        <label>สถานะ</label>
-        <select id="a-status">
-          <option value="pending">รอดำเนินการ</option>
-          <option value="done">เสร็จแล้ว</option>
-          <option value="cancelled">ยกเลิก</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>หมายเหตุ</label>
-        <textarea id="a-note" rows="3" placeholder="รายละเอียดการนัดหมาย/ติดตาม" style="width:100%;padding:12px 16px;border-radius:14px;border:var(--border);font-size:14px;font-family:var(--sans);resize:vertical;"></textarea>
-      </div>
-      <div class="form-row">
-        <label>ผู้รับผิดชอบ</label>
-        <input type="text" id="a-responsible" placeholder="ชื่อผู้รับผิดชอบนัดหมายนี้">
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" id="appt-delete-btn" onclick="deleteAppt()" style="display:none;margin-right:auto;color:#c23b3b;">ลบนัดหมาย</button>
-      <button class="btn btn-outline" onclick="closeApptModal()">ยกเลิก</button>
-      <button class="btn btn-primary" id="appt-save-btn" onclick="saveAppt()">บันทึก</button>
-    </div>
-  </div>
-</div>
-
 <!-- MEETING DAY DETAIL MODAL -->
 <div class="overlay" id="meeting-day-overlay">
   <div class="modal">
@@ -816,7 +715,7 @@ function applyBranch(){
 function setBranch(b){
   currentBranch = b;
   try{ localStorage.setItem('cpl_branch', b); }catch(e){}
-  applyBranch(); applyBranchAppts(); renderAll();
+  applyBranch(); renderAll();
 }
 document.querySelectorAll('.branch-tab').forEach(el=>el.addEventListener('click', ()=>setBranch(el.dataset.branch)));
 let currentView = 'dashboard';
@@ -981,7 +880,6 @@ async function deleteTxRow(id){
 
 /* ============ APPOINTMENTS ============ */
 const APPT_TABLE = 'appointments';
-let appts = [];
 let allAppts = [];
 function rowToAppt(row){
   return {
@@ -1042,9 +940,6 @@ async function deleteApptRow(id){
   const { error } = await supa.from(APPT_TABLE).delete().eq('id', id);
   if(error) throw error;
 }
-function applyBranchAppts(){
-  appts = allAppts.filter(a=>a.branch===currentBranch);
-}
 
 async function boot(){
   try{
@@ -1058,7 +953,6 @@ async function boot(){
     toast('เชื่อมต่อฐานข้อมูลไม่สำเร็จ: ' + (e.message||e));
   }
   applyBranch();
-  applyBranchAppts();
   refreshMeetingsFromAll();
   initHashView();
   renderAll();
@@ -1167,7 +1061,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
 });
 function initHashView(){
   const h = (location.hash||'').replace('#','');
-  const valid = ['dashboard','customers','transactions','calendar','meetings'].concat(me && me.role==='admin' ? ['users'] : []);
+  const valid = ['dashboard','customers','transactions','meetings'].concat(me && me.role==='admin' ? ['users'] : []);
   currentView = valid.includes(h) ? h : 'dashboard';
   document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active', i.dataset.view===currentView));
   document.querySelectorAll('.view').forEach(v=>v.style.display='none');
@@ -1445,7 +1339,6 @@ function renderAll(){
   if(currentView==='dashboard') renderDashboard();
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
-  if(currentView==='calendar') renderCalendar();
   if(currentView==='meetings') renderMeetingsCalendar();
 }
 document.getElementById('cust-search').addEventListener('input', ()=>{ if(currentView==='customers') renderCustomers(); });
@@ -1588,28 +1481,18 @@ setInterval(async ()=>{
   try{
     allTxs = await loadFromSupabase();
     applyBranch();
-    try{ allAppts = await loadAppointmentsFromSupabase(); applyBranchAppts(); refreshMeetingsFromAll(); }catch(e){}
+    try{ allAppts = await loadAppointmentsFromSupabase(); refreshMeetingsFromAll(); }catch(e){}
     renderAll();
     checkNotifications();
   }catch(e){ /* silent — next tick will retry */ }
 }, 60000);
 
-/* ============ CALENDAR (month view + appointments) ============ */
+/* ============ DATE HELPERS ============ */
 const CAL_DOW_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
 const CAL_MONTH_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-let calMonth = (function(){ const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
 function fmtISODate(d){
   const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
   return y+'-'+m+'-'+day;
-}
-function calShiftMonth(delta){
-  calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+delta, 1);
-  renderCalendar();
-}
-function calGoToday(){
-  const d = new Date();
-  calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-  renderCalendar();
 }
 
 /* ============ GOOGLE CALENDAR (per-user OAuth, for internal meetings) ============ */
@@ -1739,211 +1622,6 @@ async function upsertGoogleCalendarEvent(appt, existingEventId){
   }
   return res.json();
 }
-function renderCalendar(){
-  const label = (LANG==='en')
-    ? calMonth.toLocaleDateString('en-GB',{month:'long',year:'numeric'})
-    : (CAL_MONTH_TH[calMonth.getMonth()] + ' ' + (calMonth.getFullYear()+543));
-  document.getElementById('cal-month-label').textContent = label;
-
-  const dowRow = document.getElementById('cal-dow-row');
-  dowRow.innerHTML = CAL_DOW_TH.map(d=>`<div class="cal-dow">${d}</div>`).join('');
-
-  const year = calMonth.getFullYear(), month = calMonth.getMonth();
-  const firstDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-  const todayISO = fmtISODate(new Date());
-
-  const apptCountByDate = {};
-  const meetingCountByDate = {};
-  appts.forEach(a=>{
-    if(!a.date) return;
-    if(a.kind==='meeting') meetingCountByDate[a.date] = (meetingCountByDate[a.date]||0) + 1;
-    else apptCountByDate[a.date] = (apptCountByDate[a.date]||0) + 1;
-  });
-  const txCountByDate = {};
-  txs.forEach(t=>{ if(t.date) txCountByDate[t.date] = (txCountByDate[t.date]||0) + 1; });
-
-  const cells = [];
-  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
-  for(let i=0;i<totalCells;i++){
-    let cellDate, otherMonth=false;
-    const dayNum = i - firstDow + 1;
-    if(dayNum < 1){
-      cellDate = new Date(year, month-1, daysInPrevMonth + dayNum);
-      otherMonth = true;
-    }else if(dayNum > daysInMonth){
-      cellDate = new Date(year, month+1, dayNum - daysInMonth);
-      otherMonth = true;
-    }else{
-      cellDate = new Date(year, month, dayNum);
-    }
-    const iso = fmtISODate(cellDate);
-    const apptN = apptCountByDate[iso] || 0;
-    const meetN = meetingCountByDate[iso] || 0;
-    const txN = txCountByDate[iso] || 0;
-    const badges = [];
-    if(apptN) badges.push(`<span class="cal-badge appt">นัด ${apptN}</span>`);
-    if(meetN) badges.push(`<span class="cal-badge meeting">ประชุม ${meetN}</span>`);
-    if(txN) badges.push(`<span class="cal-badge tx">แต้ม ${txN} ครั้ง</span>`);
-    cells.push(`
-      <div class="cal-cell${otherMonth?' other-month':''}${iso===todayISO?' today':''}" onclick="openDayModal('${iso}')">
-        <div class="cal-daynum">${cellDate.getDate()}</div>
-        <div class="cal-badges">${badges.join('')}</div>
-      </div>
-    `);
-  }
-  document.getElementById('cal-grid').innerHTML = cells.join('');
-}
-
-/* ---- Day detail modal ---- */
-let activeDayISO = null;
-function openDayModal(iso){
-  activeDayISO = iso;
-  const dt = new Date(iso+'T00:00:00');
-  document.getElementById('day-modal-title').textContent = fmtDate(iso) + (LANG==='en' ? '' : (' (' + CAL_DOW_TH[dt.getDay()] + ')'));
-
-  function renderApptRow(a){
-    const timeLabel = a.kind==='meeting'
-      ? (a.time ? escapeHtml(a.time) + (a.endTime ? '–'+escapeHtml(a.endTime) : '') : 'ไม่ระบุเวลา')
-      : (a.time ? escapeHtml(a.time) : 'ไม่ระบุเวลา');
-    const titleLine = a.kind==='meeting'
-      ? escapeHtml(a.title || 'ประชุมภายใน')
-      : escapeHtml(a.customerName || (a.userId ? 'ID '+a.userId.slice(0,10)+'…' : 'ไม่ระบุชื่อลูกค้า'));
-    const attendeesLine = (a.kind==='meeting' && a.attendees && a.attendees.length)
-      ? '<div class="appt-note">ผู้เข้าร่วม: '+escapeHtml(a.attendees.join(', '))+'</div>' : '';
-    const meetLine = (a.kind==='meeting' && a.meetLink)
-      ? '<div class="appt-note"><a href="'+escapeHtml(a.meetLink)+'" target="_blank" rel="noopener">เข้าร่วม Google Meet</a></div>' : '';
-    return `
-    <div class="appt-row">
-      <div class="appt-main">
-        <div class="appt-time">${timeLabel}</div>
-        <div class="appt-cust">${a.kind==='meeting' ? '📅 ' : ''}${titleLine}</div>
-        ${attendeesLine}
-        ${meetLine}
-        ${a.note ? '<div class="appt-note">'+escapeHtml(a.note)+'</div>' : ''}
-        <span class="appt-status ${a.status}">${a.status==='done'?'เสร็จแล้ว':a.status==='cancelled'?'ยกเลิก':'รอดำเนินการ'}</span>
-      </div>
-      <div class="appt-actions">
-        <button class="icon-btn" title="แก้ไข" onclick="openApptModal('${a.id}')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        </button>
-      </div>
-    </div>`;
-  }
-  const dayAll = appts.filter(a=>a.date===iso).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  const dayCustomerAppts = dayAll.filter(a=>a.kind!=='meeting');
-  const dayMeetings = dayAll.filter(a=>a.kind==='meeting');
-  document.getElementById('day-appt-list').innerHTML =
-    (dayCustomerAppts.length ? dayCustomerAppts.map(renderApptRow).join('') : '<div class="empty-state" style="padding:12px 0;">ไม่มีนัดหมายลูกค้าวันนี้</div>') +
-    '<div class="day-sec-title">ประชุมภายในองค์กร</div>' +
-    (dayMeetings.length ? dayMeetings.map(renderApptRow).join('') : '<div class="empty-state" style="padding:12px 0;">ไม่มีประชุมวันนี้</div>');
-
-  document.getElementById('day-add-appt-btn').onclick = ()=>{ closeDayModal(); openApptModal(null, iso); };
-
-  const dayTxs = txs.filter(t=>t.date===iso);
-  document.getElementById('day-tx-empty').style.display = dayTxs.length ? 'none' : 'block';
-  document.getElementById('day-tx-list').innerHTML = dayTxs.map(t=>`
-    <div class="day-tx-row">
-      <span>${escapeHtml(t.customerName||(t.userId?'ID '+t.userId.slice(0,10)+'…':'-'))}</span>
-      <span style="font-weight:700;color:${Number(t.points)<0?'#c23b3b':'var(--navy)'};">${Number(t.points)>0?'+':''}${fmtNum(t.points)}</span>
-      <span class="pill ${TYPE_PILL[t.type]||'pill-grey'}">${escapeHtml(t.type||'-')}</span>
-    </div>
-  `).join('');
-
-  document.getElementById('day-overlay').classList.add('open');
-}
-function closeDayModal(){ document.getElementById('day-overlay').classList.remove('open'); }
-document.getElementById('day-overlay').addEventListener('click', e=>{ if(e.target.id==='day-overlay') closeDayModal(); });
-
-/* ---- Add/edit appointment modal ---- */
-function openApptModal(id, prefillDateISO){
-  const overlay = document.getElementById('appt-overlay');
-  const delBtn = document.getElementById('appt-delete-btn');
-  delBtn.style.display = id ? 'inline-flex' : 'none';
-  if(id){
-    const a = appts.find(x=>x.id===id);
-    document.getElementById('appt-modal-title').textContent = 'แก้ไขนัดหมาย';
-    document.getElementById('appt-id').value = a.id;
-    document.getElementById('a-date').value = a.date||'';
-    document.getElementById('a-time').value = a.time||'';
-    document.getElementById('a-customername').value = a.customerName||'';
-    document.getElementById('a-userid').value = a.userId||'';
-    document.getElementById('a-status').value = a.status||'pending';
-    document.getElementById('a-note').value = a.note||'';
-    document.getElementById('a-responsible').value = a.responsiblePerson||'';
-  }else{
-    document.getElementById('appt-modal-title').textContent = 'เพิ่มนัดหมาย · ' + currentBranch;
-    document.getElementById('appt-id').value = '';
-    document.getElementById('a-date').value = prefillDateISO || fmtISODate(new Date());
-    document.getElementById('a-time').value = '';
-    document.getElementById('a-customername').value = '';
-    document.getElementById('a-userid').value = '';
-    document.getElementById('a-status').value = 'pending';
-    document.getElementById('a-note').value = '';
-    document.getElementById('a-responsible').value = (me && me.email) || '';
-  }
-  overlay.classList.add('open');
-}
-function closeApptModal(){ document.getElementById('appt-overlay').classList.remove('open'); }
-document.getElementById('appt-overlay').addEventListener('click', e=>{ if(e.target.id==='appt-overlay') closeApptModal(); });
-
-async function saveAppt(){
-  const date = document.getElementById('a-date').value;
-  if(!date){ toast('กรุณาเลือกวันที่'); return; }
-  const payload = {
-    kind: 'customer',
-    date,
-    time: document.getElementById('a-time').value || '',
-    customerName: document.getElementById('a-customername').value.trim(),
-    userId: document.getElementById('a-userid').value.trim(),
-    status: document.getElementById('a-status').value,
-    note: document.getElementById('a-note').value.trim(),
-    responsiblePerson: document.getElementById('a-responsible').value.trim(),
-  };
-  const id = document.getElementById('appt-id').value;
-  try{
-    if(id){
-      payload.branch = (appts.find(x=>x.id===id)||{}).branch || currentBranch;
-      await updateApptRow(id, payload);
-      const a = appts.find(x=>x.id===id);
-      Object.assign(a, payload);
-      const idxAll = allAppts.findIndex(x=>x.id===id);
-      if(idxAll>-1) Object.assign(allAppts[idxAll], payload);
-      toast('บันทึกการแก้ไขนัดหมายแล้ว');
-    }else{
-      payload.branch = currentBranch;
-      const saved = await insertAppt(payload);
-      allAppts.unshift(saved);
-      applyBranchAppts();
-      toast('เพิ่มนัดหมายแล้ว');
-    }
-    closeApptModal();
-    if(document.getElementById('day-overlay').classList.contains('open') && activeDayISO) openDayModal(activeDayISO);
-    renderCalendar();
-  }catch(e){
-    console.error(e);
-    toast('บันทึกไม่สำเร็จ: ' + (e.message||e));
-  }
-}
-async function deleteAppt(){
-  const id = document.getElementById('appt-id').value;
-  if(!id) return;
-  if(!window.confirm('ยืนยันลบนัดหมายนี้?')) return;
-  try{
-    await deleteApptRow(id);
-    allAppts = allAppts.filter(x=>x.id!==id);
-    applyBranchAppts();
-    closeApptModal();
-    if(document.getElementById('day-overlay').classList.contains('open') && activeDayISO) openDayModal(activeDayISO);
-    renderCalendar();
-    toast('ลบนัดหมายแล้ว');
-  }catch(e){
-    console.error(e);
-    toast('ลบไม่สำเร็จ: ' + (e.message||e));
-  }
-}
-
 /* ============ MEETINGS (internal, org-wide, Google Calendar sync) ============ */
 let meetings = [];
 function refreshMeetingsFromAll(){
