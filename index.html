@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --ink:#111111; --paper:#FFFDF7; --white:#FFFFFF;
@@ -270,6 +271,7 @@
   .cal-badges{display:flex;flex-direction:column;gap:3px;}
   .cal-badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;width:fit-content;}
   .cal-badge.appt{background:var(--sky);color:var(--fill-text);}
+  .cal-badge.meeting{background:var(--pink);color:var(--fill-text);}
   .cal-badge.tx{background:var(--yellow);color:var(--ink);}
   @media (max-width:900px){
     .cal-cell{min-height:64px;padding:6px;}
@@ -631,37 +633,68 @@
     <div class="modal-head"><h2 id="appt-modal-title">เพิ่มนัดหมาย</h2><button class="close-x" onclick="closeApptModal()">&times;</button></div>
     <div class="modal-body">
       <input type="hidden" id="appt-id">
+      <div class="form-row">
+        <label>ประเภท</label>
+        <select id="a-kind" onchange="toggleApptKindFields()">
+          <option value="customer">นัดหมาย/ติดตามลูกค้า</option>
+          <option value="meeting">ประชุมภายในองค์กร</option>
+        </select>
+      </div>
+
       <div class="form-grid">
         <div class="form-row">
           <label>วันที่ *</label>
           <input type="date" id="a-date">
         </div>
-        <div class="form-row">
+        <div class="form-row" id="a-time-row">
           <label>เวลา</label>
           <input type="time" id="a-time">
         </div>
       </div>
-      <div class="form-row">
-        <label>ชื่อลูกค้า — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง</label>
-        <input type="text" id="a-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
-      </div>
-      <div class="form-grid">
+
+      <!-- CUSTOMER-KIND FIELDS -->
+      <div id="appt-fields-customer">
+        <div class="form-row">
+          <label>ชื่อลูกค้า — ใส่ชื่อหรือ ID อย่างใดอย่างหนึ่ง</label>
+          <input type="text" id="a-customername" list="customer-names-list" placeholder="เช่น Seagame Porjai">
+        </div>
         <div class="form-row">
           <label>ID ผู้ใช้</label>
           <input type="text" id="a-userid" placeholder="ID ผู้ใช้ของลูกค้า (ถ้ามี)">
         </div>
+      </div>
+
+      <!-- MEETING-KIND FIELDS -->
+      <div id="appt-fields-meeting" style="display:none;">
         <div class="form-row">
-          <label>สถานะ</label>
-          <select id="a-status">
-            <option value="pending">รอดำเนินการ</option>
-            <option value="done">เสร็จแล้ว</option>
-            <option value="cancelled">ยกเลิก</option>
-          </select>
+          <label>หัวข้อประชุม *</label>
+          <input type="text" id="a-title" placeholder="เช่น ประชุมทีมขายประจำสัปดาห์">
         </div>
+        <div class="form-row">
+          <label>เวลาสิ้นสุด</label>
+          <input type="time" id="a-endtime">
+        </div>
+        <div class="form-row">
+          <label>ผู้เข้าร่วม (อีเมล คั่นด้วยจุลภาค)</label>
+          <input type="text" id="a-attendees" placeholder="name1@cpl-inter.com, name2@cpl-inter.com">
+        </div>
+        <div class="form-row" style="background:var(--grey-100);border-radius:14px;padding:12px 14px;">
+          <div id="gcal-status" style="font-size:13px;font-weight:600;margin-bottom:8px;">ยังไม่ได้เชื่อมต่อ Google Calendar ของคุณ</div>
+          <button type="button" class="btn btn-outline btn-sm" id="gcal-connect-btn" onclick="connectGoogleCalendar()">เชื่อมต่อ Google Calendar ของฉัน</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>สถานะ</label>
+        <select id="a-status">
+          <option value="pending">รอดำเนินการ</option>
+          <option value="done">เสร็จแล้ว</option>
+          <option value="cancelled">ยกเลิก</option>
+        </select>
       </div>
       <div class="form-row">
         <label>หมายเหตุ</label>
-        <textarea id="a-note" rows="3" placeholder="รายละเอียดการนัดหมาย/ติดตาม" style="width:100%;padding:12px 16px;border-radius:14px;border:var(--border);font-size:14px;font-family:var(--sans);resize:vertical;"></textarea>
+        <textarea id="a-note" rows="3" placeholder="รายละเอียดการนัดหมาย/ติดตาม/ประชุม" style="width:100%;padding:12px 16px;border-radius:14px;border:var(--border);font-size:14px;font-family:var(--sans);resize:vertical;"></textarea>
       </div>
       <div class="form-row">
         <label>ผู้รับผิดชอบ</label>
@@ -671,7 +704,7 @@
     <div class="modal-foot">
       <button class="btn btn-ghost" id="appt-delete-btn" onclick="deleteAppt()" style="display:none;margin-right:auto;color:#c23b3b;">ลบนัดหมาย</button>
       <button class="btn btn-outline" onclick="closeApptModal()">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveAppt()">บันทึก</button>
+      <button class="btn btn-primary" id="appt-save-btn" onclick="saveAppt()">บันทึก</button>
     </div>
   </div>
 </div>
@@ -880,28 +913,41 @@ function rowToAppt(row){
   return {
     id: row.id,
     branch: row.branch || 'CPL Inter',
+    kind: row.kind || 'customer',
+    title: row.title || '',
     customerName: row.customer_name || '',
     userId: row.user_id || '',
     fullName: row.full_name || '',
     date: row.appt_date || '',
     time: row.appt_time ? String(row.appt_time).slice(0,5) : '',
+    endTime: row.end_time ? String(row.end_time).slice(0,5) : '',
+    attendees: Array.isArray(row.attendees) ? row.attendees : [],
     note: row.note || '',
     responsiblePerson: row.responsible_person || '',
     status: row.status || 'pending',
     googleEventId: row.google_event_id || '',
+    meetLink: row.meet_link || '',
+    googleCalendarOwner: row.google_calendar_owner || '',
   };
 }
 function apptToRow(a){
   return {
     branch: a.branch || currentBranch,
+    kind: a.kind || 'customer',
+    title: a.title || '',
     customer_name: a.customerName || '',
     user_id: a.userId || '',
     full_name: a.fullName || '',
     appt_date: a.date || null,
     appt_time: a.time || null,
+    end_time: a.endTime || null,
+    attendees: Array.isArray(a.attendees) ? a.attendees : [],
     note: a.note || '',
     responsible_person: a.responsiblePerson || '',
     status: a.status || 'pending',
+    google_event_id: a.googleEventId || null,
+    meet_link: a.meetLink || null,
+    google_calendar_owner: a.googleCalendarOwner || null,
   };
 }
 async function loadAppointmentsFromSupabase(){
@@ -1489,6 +1535,129 @@ function calGoToday(){
   calMonth = new Date(d.getFullYear(), d.getMonth(), 1);
   renderCalendar();
 }
+
+/* ============ GOOGLE CALENDAR (per-user OAuth, for internal meetings) ============ */
+// Each staff member connects their OWN Google account in-browser (Google Identity
+// Services token flow). No server/backend is involved — the access token lives only
+// in this tab's memory and is used to call the Calendar API directly from the browser.
+// To enable this, create an OAuth 2.0 Client ID (type: Web application) in Google
+// Cloud Console, add https://natthinanm.github.io as an Authorized JavaScript origin,
+// and paste the Client ID below.
+const GOOGLE_CALENDAR_CLIENT_ID = ''; // e.g. '1234567890-abc.apps.googleusercontent.com'
+const GOOGLE_CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email';
+
+let gcalTokenClient = null;
+let gcalAccessToken = null;
+let gcalTokenExpiresAt = 0;
+let gcalConnectedEmail = (function(){ try{ return localStorage.getItem('cpl_gcal_email') || ''; }catch(e){ return ''; } })();
+
+function gcalConfigured(){ return !!GOOGLE_CALENDAR_CLIENT_ID; }
+
+function ensureGCalTokenClient(){
+  if(!gcalConfigured() || typeof google === 'undefined' || !google.accounts) return null;
+  if(gcalTokenClient) return gcalTokenClient;
+  gcalTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CALENDAR_CLIENT_ID,
+    scope: GOOGLE_CALENDAR_SCOPES,
+    callback: async (resp)=>{
+      if(resp && resp.access_token){
+        gcalAccessToken = resp.access_token;
+        gcalTokenExpiresAt = Date.now() + ((resp.expires_in||3600)*1000) - 60000;
+        try{
+          const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers:{ Authorization:'Bearer '+gcalAccessToken } });
+          const info = await r.json();
+          gcalConnectedEmail = info.email || '';
+          try{ localStorage.setItem('cpl_gcal_email', gcalConnectedEmail); }catch(e){}
+        }catch(e){ /* non-fatal */ }
+        refreshGCalStatusUI();
+        toast('เชื่อมต่อ Google Calendar แล้ว');
+      }
+    },
+  });
+  return gcalTokenClient;
+}
+function connectGoogleCalendar(){
+  if(!gcalConfigured()){
+    toast('ยังไม่ได้ตั้งค่า Google Calendar Client ID — แจ้งผู้ดูแลระบบ');
+    return;
+  }
+  const tc = ensureGCalTokenClient();
+  if(!tc){ toast('โหลด Google Identity Services ไม่สำเร็จ ลองรีเฟรชหน้าเว็บ'); return; }
+  tc.requestAccessToken({ prompt: gcalAccessToken ? '' : 'consent' });
+}
+function refreshGCalStatusUI(){
+  const el = document.getElementById('gcal-status');
+  const btn = document.getElementById('gcal-connect-btn');
+  if(!el || !btn) return;
+  if(!gcalConfigured()){
+    el.textContent = 'ยังไม่ได้ตั้งค่า Google Calendar ในระบบ (ต้องตั้งค่า OAuth Client ID ก่อน)';
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  if(gcalAccessToken && Date.now() < gcalTokenExpiresAt){
+    el.textContent = 'เชื่อมต่อแล้ว: ' + (gcalConnectedEmail || 'บัญชี Google ของคุณ');
+    btn.textContent = 'เชื่อมต่อใหม่ / สลับบัญชี';
+  }else{
+    el.textContent = gcalConnectedEmail
+      ? ('เซสชันหมดอายุ — กดเชื่อมต่ออีกครั้ง (' + gcalConnectedEmail + ')')
+      : 'ยังไม่ได้เชื่อมต่อ Google Calendar ของคุณ';
+    btn.textContent = 'เชื่อมต่อ Google Calendar ของฉัน';
+  }
+}
+async function ensureFreshGCalToken(){
+  if(gcalAccessToken && Date.now() < gcalTokenExpiresAt) return gcalAccessToken;
+  return new Promise((resolve, reject)=>{
+    const tc = ensureGCalTokenClient();
+    if(!tc){ reject(new Error('Google Calendar ยังไม่ได้ตั้งค่า')); return; }
+    const prevCb = tc.callback;
+    tc.callback = (resp)=>{
+      tc.callback = prevCb;
+      if(resp && resp.access_token){
+        gcalAccessToken = resp.access_token;
+        gcalTokenExpiresAt = Date.now() + ((resp.expires_in||3600)*1000) - 60000;
+        resolve(gcalAccessToken);
+      }else{
+        reject(new Error('ไม่สามารถขอ access token จาก Google ได้'));
+      }
+    };
+    tc.requestAccessToken({ prompt: '' });
+  });
+}
+async function upsertGoogleCalendarEvent(appt, existingEventId){
+  const token = await ensureFreshGCalToken();
+  const tz = 'Asia/Bangkok';
+  const startDateTime = appt.date + 'T' + (appt.time || '09:00') + ':00';
+  const endDateTime = appt.date + 'T' + (appt.endTime || appt.time || '10:00') + ':00';
+  const body = {
+    summary: appt.title || 'ประชุมภายใน CPL',
+    description: appt.note || '',
+    start: { dateTime: startDateTime, timeZone: tz },
+    end: { dateTime: endDateTime, timeZone: tz },
+    attendees: (appt.attendees||[]).map(email=>({ email })),
+  };
+  let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+  let method = 'POST';
+  const params = new URLSearchParams({ sendUpdates: 'all' });
+  if(!existingEventId){
+    body.conferenceData = { createRequest: { requestId: uid(), conferenceSolutionKey: { type: 'hangoutsMeet' } } };
+    params.set('conferenceDataVersion', '1');
+  }
+  if(existingEventId){
+    url += '/' + encodeURIComponent(existingEventId);
+    method = 'PATCH';
+  }
+  const res = await fetch(url + '?' + params.toString(), {
+    method,
+    headers: { Authorization: 'Bearer '+token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error('Google Calendar API error (' + res.status + '): ' + errText);
+  }
+  return res.json();
+}
 function renderCalendar(){
   const label = (LANG==='en')
     ? calMonth.toLocaleDateString('en-GB',{month:'long',year:'numeric'})
@@ -1505,7 +1674,12 @@ function renderCalendar(){
   const todayISO = fmtISODate(new Date());
 
   const apptCountByDate = {};
-  appts.forEach(a=>{ if(a.date) apptCountByDate[a.date] = (apptCountByDate[a.date]||0) + 1; });
+  const meetingCountByDate = {};
+  appts.forEach(a=>{
+    if(!a.date) return;
+    if(a.kind==='meeting') meetingCountByDate[a.date] = (meetingCountByDate[a.date]||0) + 1;
+    else apptCountByDate[a.date] = (apptCountByDate[a.date]||0) + 1;
+  });
   const txCountByDate = {};
   txs.forEach(t=>{ if(t.date) txCountByDate[t.date] = (txCountByDate[t.date]||0) + 1; });
 
@@ -1525,9 +1699,11 @@ function renderCalendar(){
     }
     const iso = fmtISODate(cellDate);
     const apptN = apptCountByDate[iso] || 0;
+    const meetN = meetingCountByDate[iso] || 0;
     const txN = txCountByDate[iso] || 0;
     const badges = [];
     if(apptN) badges.push(`<span class="cal-badge appt">นัด ${apptN}</span>`);
+    if(meetN) badges.push(`<span class="cal-badge meeting">ประชุม ${meetN}</span>`);
     if(txN) badges.push(`<span class="cal-badge tx">แต้ม ${txN} ครั้ง</span>`);
     cells.push(`
       <div class="cal-cell${otherMonth?' other-month':''}${iso===todayISO?' today':''}" onclick="openDayModal('${iso}')">
@@ -1546,12 +1722,24 @@ function openDayModal(iso){
   const dt = new Date(iso+'T00:00:00');
   document.getElementById('day-modal-title').textContent = fmtDate(iso) + (LANG==='en' ? '' : (' (' + CAL_DOW_TH[dt.getDay()] + ')'));
 
-  const dayAppts = appts.filter(a=>a.date===iso).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  document.getElementById('day-appt-list').innerHTML = dayAppts.length ? dayAppts.map(a=>`
+  function renderApptRow(a){
+    const timeLabel = a.kind==='meeting'
+      ? (a.time ? escapeHtml(a.time) + (a.endTime ? '–'+escapeHtml(a.endTime) : '') : 'ไม่ระบุเวลา')
+      : (a.time ? escapeHtml(a.time) : 'ไม่ระบุเวลา');
+    const titleLine = a.kind==='meeting'
+      ? escapeHtml(a.title || 'ประชุมภายใน')
+      : escapeHtml(a.customerName || (a.userId ? 'ID '+a.userId.slice(0,10)+'…' : 'ไม่ระบุชื่อลูกค้า'));
+    const attendeesLine = (a.kind==='meeting' && a.attendees && a.attendees.length)
+      ? '<div class="appt-note">ผู้เข้าร่วม: '+escapeHtml(a.attendees.join(', '))+'</div>' : '';
+    const meetLine = (a.kind==='meeting' && a.meetLink)
+      ? '<div class="appt-note"><a href="'+escapeHtml(a.meetLink)+'" target="_blank" rel="noopener">เข้าร่วม Google Meet</a></div>' : '';
+    return `
     <div class="appt-row">
       <div class="appt-main">
-        <div class="appt-time">${a.time ? escapeHtml(a.time) : 'ไม่ระบุเวลา'}</div>
-        <div class="appt-cust">${escapeHtml(a.customerName || (a.userId ? 'ID '+a.userId.slice(0,10)+'…' : 'ไม่ระบุชื่อลูกค้า'))}</div>
+        <div class="appt-time">${timeLabel}</div>
+        <div class="appt-cust">${a.kind==='meeting' ? '📅 ' : ''}${titleLine}</div>
+        ${attendeesLine}
+        ${meetLine}
         ${a.note ? '<div class="appt-note">'+escapeHtml(a.note)+'</div>' : ''}
         <span class="appt-status ${a.status}">${a.status==='done'?'เสร็จแล้ว':a.status==='cancelled'?'ยกเลิก':'รอดำเนินการ'}</span>
       </div>
@@ -1560,8 +1748,15 @@ function openDayModal(iso){
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </button>
       </div>
-    </div>
-  `).join('') : '<div class="empty-state" style="padding:12px 0;">ไม่มีนัดหมายวันนี้</div>';
+    </div>`;
+  }
+  const dayAll = appts.filter(a=>a.date===iso).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const dayCustomerAppts = dayAll.filter(a=>a.kind!=='meeting');
+  const dayMeetings = dayAll.filter(a=>a.kind==='meeting');
+  document.getElementById('day-appt-list').innerHTML =
+    (dayCustomerAppts.length ? dayCustomerAppts.map(renderApptRow).join('') : '<div class="empty-state" style="padding:12px 0;">ไม่มีนัดหมายลูกค้าวันนี้</div>') +
+    '<div class="day-sec-title">ประชุมภายในองค์กร</div>' +
+    (dayMeetings.length ? dayMeetings.map(renderApptRow).join('') : '<div class="empty-state" style="padding:12px 0;">ไม่มีประชุมวันนี้</div>');
 
   document.getElementById('day-add-appt-btn').onclick = ()=>{ closeDayModal(); openApptModal(null, iso); };
 
@@ -1581,32 +1776,47 @@ function closeDayModal(){ document.getElementById('day-overlay').classList.remov
 document.getElementById('day-overlay').addEventListener('click', e=>{ if(e.target.id==='day-overlay') closeDayModal(); });
 
 /* ---- Add/edit appointment modal ---- */
+function toggleApptKindFields(){
+  const kind = document.getElementById('a-kind').value;
+  document.getElementById('appt-fields-customer').style.display = kind==='meeting' ? 'none' : 'block';
+  document.getElementById('appt-fields-meeting').style.display = kind==='meeting' ? 'block' : 'none';
+  refreshGCalStatusUI();
+}
 function openApptModal(id, prefillDateISO){
   const overlay = document.getElementById('appt-overlay');
   const delBtn = document.getElementById('appt-delete-btn');
   delBtn.style.display = id ? 'inline-flex' : 'none';
   if(id){
     const a = appts.find(x=>x.id===id);
-    document.getElementById('appt-modal-title').textContent = 'แก้ไขนัดหมาย';
+    document.getElementById('appt-modal-title').textContent = a.kind==='meeting' ? 'แก้ไขประชุม' : 'แก้ไขนัดหมาย';
     document.getElementById('appt-id').value = a.id;
+    document.getElementById('a-kind').value = a.kind || 'customer';
     document.getElementById('a-date').value = a.date||'';
     document.getElementById('a-time').value = a.time||'';
+    document.getElementById('a-endtime').value = a.endTime||'';
     document.getElementById('a-customername').value = a.customerName||'';
     document.getElementById('a-userid').value = a.userId||'';
+    document.getElementById('a-title').value = a.title||'';
+    document.getElementById('a-attendees').value = (a.attendees||[]).join(', ');
     document.getElementById('a-status').value = a.status||'pending';
     document.getElementById('a-note').value = a.note||'';
     document.getElementById('a-responsible').value = a.responsiblePerson||'';
   }else{
     document.getElementById('appt-modal-title').textContent = 'เพิ่มนัดหมาย · ' + currentBranch;
     document.getElementById('appt-id').value = '';
+    document.getElementById('a-kind').value = 'customer';
     document.getElementById('a-date').value = prefillDateISO || fmtISODate(new Date());
     document.getElementById('a-time').value = '';
+    document.getElementById('a-endtime').value = '';
     document.getElementById('a-customername').value = '';
     document.getElementById('a-userid').value = '';
+    document.getElementById('a-title').value = '';
+    document.getElementById('a-attendees').value = '';
     document.getElementById('a-status').value = 'pending';
     document.getElementById('a-note').value = '';
     document.getElementById('a-responsible').value = (me && me.email) || '';
   }
+  toggleApptKindFields();
   overlay.classList.add('open');
 }
 function closeApptModal(){ document.getElementById('appt-overlay').classList.remove('open'); }
@@ -1615,9 +1825,18 @@ document.getElementById('appt-overlay').addEventListener('click', e=>{ if(e.targ
 async function saveAppt(){
   const date = document.getElementById('a-date').value;
   if(!date){ toast('กรุณาเลือกวันที่'); return; }
+  const kind = document.getElementById('a-kind').value;
+  if(kind==='meeting' && !document.getElementById('a-title').value.trim()){
+    toast('กรุณากรอกหัวข้อประชุม'); return;
+  }
+  const attendees = document.getElementById('a-attendees').value.split(',').map(s=>s.trim()).filter(Boolean);
   const payload = {
+    kind,
     date,
     time: document.getElementById('a-time').value || '',
+    endTime: document.getElementById('a-endtime').value || '',
+    title: document.getElementById('a-title').value.trim(),
+    attendees,
     customerName: document.getElementById('a-customername').value.trim(),
     userId: document.getElementById('a-userid').value.trim(),
     status: document.getElementById('a-status').value,
@@ -1625,7 +1844,24 @@ async function saveAppt(){
     responsiblePerson: document.getElementById('a-responsible').value.trim(),
   };
   const id = document.getElementById('appt-id').value;
+  const saveBtn = document.getElementById('appt-save-btn');
+  saveBtn.disabled = true;
   try{
+    // For meetings, create/update the event on the connected Google Calendar first
+    if(kind==='meeting' && gcalAccessToken){
+      try{
+        const existing = id ? appts.find(x=>x.id===id) : null;
+        const gEvent = await upsertGoogleCalendarEvent(payload, existing && existing.googleEventId);
+        if(gEvent){
+          payload.googleEventId = gEvent.id || (existing && existing.googleEventId) || '';
+          payload.meetLink = (gEvent.hangoutLink) || (existing && existing.meetLink) || '';
+          payload.googleCalendarOwner = gcalConnectedEmail || '';
+        }
+      }catch(ge){
+        console.error('Google Calendar sync failed', ge);
+        toast('บันทึกในระบบสำเร็จ แต่ซิงก์ไป Google Calendar ไม่สำเร็จ: ' + (ge.message||ge));
+      }
+    }
     if(id){
       payload.branch = (appts.find(x=>x.id===id)||{}).branch || currentBranch;
       await updateApptRow(id, payload);
@@ -1633,13 +1869,13 @@ async function saveAppt(){
       Object.assign(a, payload);
       const idxAll = allAppts.findIndex(x=>x.id===id);
       if(idxAll>-1) Object.assign(allAppts[idxAll], payload);
-      toast('บันทึกการแก้ไขนัดหมายแล้ว');
+      toast(kind==='meeting' ? 'บันทึกการแก้ไขประชุมแล้ว' : 'บันทึกการแก้ไขนัดหมายแล้ว');
     }else{
       payload.branch = currentBranch;
       const saved = await insertAppt(payload);
       allAppts.unshift(saved);
       applyBranchAppts();
-      toast('เพิ่มนัดหมายแล้ว');
+      toast(kind==='meeting' ? 'เพิ่มประชุมแล้ว' : 'เพิ่มนัดหมายแล้ว');
     }
     closeApptModal();
     if(document.getElementById('day-overlay').classList.contains('open') && activeDayISO) openDayModal(activeDayISO);
@@ -1647,6 +1883,8 @@ async function saveAppt(){
   }catch(e){
     console.error(e);
     toast('บันทึกไม่สำเร็จ: ' + (e.message||e));
+  }finally{
+    saveBtn.disabled = false;
   }
 }
 async function deleteAppt(){
