@@ -443,6 +443,14 @@
           <tbody id="fb-chat-trend-body"></tbody></table>
         </div>
       </div>
+      <div class="panel" id="fb-live-snapshot-panel" style="display:none;">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <span>ข้อมูลล่าสุดจาก Facebook (Meta Business Suite)</span>
+          <span id="fb-live-fetched-at" style="font-size:12px;font-weight:600;color:var(--grey-500,#888);"></span>
+        </div>
+        <div style="font-size:12.5px;color:var(--grey-500,#888);margin:-8px 0 14px;">ดึงข้อมูลตามคำขอ — บอก Claude ว่า "ดึงข้อมูล Facebook ใหม่" เพื่ออัปเดต</div>
+        <div id="fb-live-cards" style="display:flex;flex-direction:column;gap:14px;"></div>
+      </div>
       <div class="panel" id="fb-weekly-report-panel" style="display:none;">
         <div class="panel-title">รายงานการตอบแชทประจำสัปดาห์ (7 วันล่าสุด)</div>
         <div class="stat-grid" style="margin-bottom:16px;">
@@ -1294,6 +1302,40 @@ function renderFbWeeklyReport(data){
     </div>`;
 }
 
+async function loadAndRenderFbLiveSnapshot(){
+  const panel = document.getElementById('fb-live-snapshot-panel');
+  try{
+    const { data, error } = await supa
+      .from('fb_live_snapshot')
+      .select('page_name,period_start,period_end,total_contacts,new_contacts,organic_contacts,sponsored_contacts,response_rate_pct,avg_response_seconds,fetched_at')
+      .order('page_name', { ascending: true });
+    if(error) throw error;
+    if(!data || data.length === 0){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+
+    const latestFetch = data.reduce((max,r)=> !max || new Date(r.fetched_at) > new Date(max) ? r.fetched_at : max, null);
+    document.getElementById('fb-live-fetched-at').textContent = latestFetch
+      ? 'ดึงล่าสุด: ' + new Date(latestFetch).toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'})
+      : '';
+
+    document.getElementById('fb-live-cards').innerHTML = data.map(r=>{
+      const adsPct = r.new_contacts>0 && r.sponsored_contacts!=null ? Math.round(r.sponsored_contacts/r.new_contacts*100) : null;
+      return `
+      <div style="border:2px solid var(--ink);border-radius:14px;padding:16px;">
+        <div style="font-weight:800;font-size:15px;margin-bottom:10px;">${r.page_name} <span style="font-weight:500;font-size:12px;color:var(--grey-500,#888);">(${fmtDate(r.period_start)} – ${fmtDate(r.period_end)})</span></div>
+        <div class="stat-grid" style="margin-bottom:0;">
+          <div class="stat-card navy"><div class="stat-label">ผู้ติดต่อทั้งหมด</div><div class="stat-value">${fmtNum(r.total_contacts)}</div><div class="stat-sub">${fmtNum(r.new_contacts)} รายใหม่</div><div class="curve-deco"></div></div>
+          <div class="stat-card pink"><div class="stat-label">อัตราตอบกลับ</div><div class="stat-value">${r.response_rate_pct!=null ? r.response_rate_pct.toFixed(1)+'%' : '-'}</div><div class="stat-sub">&nbsp;</div><div class="curve-deco"></div></div>
+          <div class="stat-card blue"><div class="stat-label">เวลาตอบกลับเฉลี่ย</div><div class="stat-value">${r.avg_response_seconds!=null ? fmtDurationSec(r.avg_response_seconds) : '-'}</div><div class="stat-sub">&nbsp;</div><div class="curve-deco"></div></div>
+          <div class="stat-card green"><div class="stat-label">ช่องทางที่มา</div><div class="stat-value">${adsPct!=null ? adsPct+'% Ads' : '-'}</div><div class="stat-sub">สปอนเซอร์ ${fmtNum(r.sponsored_contacts||0)} · ออร์แกนิก ${fmtNum(r.organic_contacts||0)}</div><div class="curve-deco"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('load fb live snapshot failed', e);
+    panel.style.display = 'none';
+  }
+}
 let FB_REPORT_ROWS = [];
 let FB_REPORT_PAGE = 'ALL';
 function fmtShortRange(ws, we){
@@ -1661,7 +1703,7 @@ function exportCSV(kind){
 function renderAll(){
   document.body.classList.toggle('on-users', currentView==='users');
   if(currentView==='users'){ if(!appUsers.length) loadUsers(); else renderUsers(); }
-  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbChatStats(); loadAndRenderFbReport(); }
+  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbChatStats(); loadAndRenderFbReport(); loadAndRenderFbLiveSnapshot(); }
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
   if(currentView==='meetings') renderMeetingsCalendar();
