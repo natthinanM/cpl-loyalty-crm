@@ -453,6 +453,23 @@
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">เทรนด์แชทรายวันในสัปดาห์</div>
         <div id="fb-weekly-chart"></div>
       </div>
+      <div class="panel" id="fb-report-panel" style="display:none;">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <span>รายงานผลการตอบแชท Facebook Messenger</span>
+          <div class="fb-report-tabs" id="fb-report-tabs" style="display:flex;gap:6px;"></div>
+        </div>
+        <div style="font-size:12.5px;color:var(--grey-500,#888);margin:-8px 0 14px;" id="fb-report-period"></div>
+        <div class="stat-grid" style="margin-bottom:16px;">
+          <div class="stat-card navy"><div class="stat-label">ผู้ติดต่อทั้งหมด</div><div class="stat-value" id="fbr-total">0</div><div class="stat-sub" id="fbr-new">0 รายใหม่</div><div class="curve-deco"></div></div>
+          <div class="stat-card pink"><div class="stat-label">อัตราตอบกลับเฉลี่ย</div><div class="stat-value" id="fbr-rate">-</div><div class="stat-sub">ถ่วงน้ำหนักตามจำนวนผู้ติดต่อ</div><div class="curve-deco"></div></div>
+          <div class="stat-card blue"><div class="stat-label">เวลาตอบกลับเฉลี่ย</div><div class="stat-value" id="fbr-time">-</div><div class="stat-sub">ถ่วงน้ำหนักตามจำนวนผู้ติดต่อ</div><div class="curve-deco"></div></div>
+          <div class="stat-card green"><div class="stat-label">ช่องทางที่มา</div><div class="stat-value" id="fbr-source">-</div><div class="stat-sub" id="fbr-source-sub"></div><div class="curve-deco"></div></div>
+        </div>
+        <div class="panel-title" style="font-size:14px;margin-bottom:10px;">ผู้ติดต่อทั้งหมดต่อสัปดาห์ (Ads vs ออร์แกนิก)</div>
+        <div id="fb-report-chart" style="margin-bottom:20px;"></div>
+        <table><thead><tr><th>ช่วง</th><th>ทั้งหมด</th><th>ใหม่</th><th>ออร์แกนิก</th><th>Ads</th><th>ตอบกลับ</th><th>เวลาตอบกลับ</th></tr></thead>
+        <tbody id="fb-report-table-body"></tbody></table>
+      </div>
       <div class="panel">
         <div class="panel-title">แต้มแยกตามประเภท</div>
         <div id="type-bars"></div>
@@ -1276,6 +1293,129 @@ function renderFbWeeklyReport(data){
       }).join('')}
     </div>`;
 }
+
+let FB_REPORT_ROWS = [];
+let FB_REPORT_PAGE = 'ALL';
+function fmtShortRange(ws, we){
+  const a = new Date(ws+'T00:00:00'), b = new Date(we+'T00:00:00');
+  if(isNaN(a)||isNaN(b)) return ws + ' – ' + we;
+  const sameMonth = a.getMonth()===b.getMonth();
+  const dOpt = {day:'numeric', month:'short'};
+  const aStr = a.toLocaleDateString('th-TH', sameMonth ? {day:'numeric'} : dOpt);
+  const bStr = b.toLocaleDateString('th-TH', dOpt);
+  return aStr + ' – ' + bStr;
+}
+async function loadAndRenderFbReport(){
+  const panel = document.getElementById('fb-report-panel');
+  try{
+    const { data, error } = await supa
+      .from('fb_weekly_reports')
+      .select('page_name,week_start,week_end,total_contacts,new_contacts,organic_contacts,ads_contacts,response_rate_pct,avg_response_seconds')
+      .order('week_start', { ascending: true });
+    if(error) throw error;
+    if(!data || data.length === 0){ panel.style.display = 'none'; return; }
+    FB_REPORT_ROWS = data;
+    panel.style.display = 'block';
+
+    const pages = [...new Set(data.map(r=>r.page_name))];
+    const tabsEl = document.getElementById('fb-report-tabs');
+    const tabDefs = [{key:'ALL', label:'รวมทั้งหมด'}, ...pages.map(p=>({key:p, label:p}))];
+    if(!tabDefs.find(t=>t.key===FB_REPORT_PAGE)) FB_REPORT_PAGE = 'ALL';
+    tabsEl.innerHTML = tabDefs.map(t=>`
+      <button class="btn btn-sm ${FB_REPORT_PAGE===t.key ? 'btn-primary' : 'btn-outline'}" onclick="setFbReportPage('${t.key.replace(/'/g,"\\'")}')">${t.label}</button>
+    `).join('');
+
+    renderFbReportForPage();
+  }catch(e){
+    console.error('load fb weekly report failed', e);
+    panel.style.display = 'none';
+  }
+}
+function setFbReportPage(key){
+  FB_REPORT_PAGE = key;
+  loadAndRenderFbReport();
+}
+function renderFbReportForPage(){
+  const rows = FB_REPORT_PAGE === 'ALL'
+    ? aggregateFbReportRows(FB_REPORT_ROWS)
+    : FB_REPORT_ROWS.filter(r=>r.page_name===FB_REPORT_PAGE);
+  if(!rows.length) return;
+
+  document.getElementById('fb-report-period').textContent =
+    `ข้อมูลตั้งแต่ ${fmtDate(rows[0].week_start)} ถึง ${fmtDate(rows[rows.length-1].week_end)} (อัปเดตจากรายงานล่าสุด)`;
+
+  const totalContacts = rows.reduce((s,r)=>s+Number(r.total_contacts||0),0);
+  const totalNew = rows.reduce((s,r)=>s+Number(r.new_contacts||0),0);
+  const totalOrganic = rows.reduce((s,r)=>s+Number(r.organic_contacts||0),0);
+  const totalAds = rows.reduce((s,r)=>s+Number(r.ads_contacts||0),0);
+  const weightedRateSum = rows.reduce((s,r)=> s + (r.response_rate_pct!=null ? r.response_rate_pct*Number(r.total_contacts||0) : 0), 0);
+  const rateDenom = rows.reduce((s,r)=> s + (r.response_rate_pct!=null ? Number(r.total_contacts||0) : 0), 0);
+  const avgRate = rateDenom>0 ? weightedRateSum/rateDenom : null;
+  const weightedTimeSum = rows.reduce((s,r)=> s + (r.avg_response_seconds!=null ? r.avg_response_seconds*Number(r.total_contacts||0) : 0), 0);
+  const timeDenom = rows.reduce((s,r)=> s + (r.avg_response_seconds!=null ? Number(r.total_contacts||0) : 0), 0);
+  const avgTime = timeDenom>0 ? weightedTimeSum/timeDenom : null;
+
+  document.getElementById('fbr-total').textContent = fmtNum(totalContacts);
+  document.getElementById('fbr-new').textContent = fmtNum(totalNew) + ' รายใหม่';
+  document.getElementById('fbr-rate').textContent = avgRate!=null ? avgRate.toFixed(1)+'%' : '-';
+  document.getElementById('fbr-time').textContent = avgTime!=null ? fmtDurationSec(avgTime) : '-';
+  const adsPct = totalNew>0 ? Math.round(totalAds/totalNew*100) : 0;
+  document.getElementById('fbr-source').textContent = adsPct + '% Ads';
+  document.getElementById('fbr-source-sub').textContent = `Ads ${fmtNum(totalAds)} · ออร์แกนิก ${fmtNum(totalOrganic)}`;
+
+  document.getElementById('fb-report-table-body').innerHTML = rows.map(r=>`
+    <tr>
+      <td>${fmtShortRange(r.week_start, r.week_end)}</td>
+      <td>${fmtNum(r.total_contacts)}</td>
+      <td>${fmtNum(r.new_contacts)}</td>
+      <td>${fmtNum(r.organic_contacts)}</td>
+      <td>${fmtNum(r.ads_contacts)}</td>
+      <td>${r.response_rate_pct!=null ? r.response_rate_pct.toFixed(1)+'%' : '-'}</td>
+      <td>${r.avg_response_seconds!=null ? fmtDurationSec(r.avg_response_seconds) : '-'}</td>
+    </tr>
+  `).join('');
+
+  const max = Math.max(1, ...rows.map(r=>Number(r.total_contacts||0)));
+  document.getElementById('fb-report-chart').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:8px;height:160px;padding:4px 2px 0;">
+      ${rows.map(r=>{
+        const total = Number(r.total_contacts||0);
+        const adsH = total>0 ? Math.max(0, Math.round(Number(r.ads_contacts||0)/max*120)) : 0;
+        const orgH = total>0 ? Math.max(0, Math.round(Number(r.organic_contacts||0)/max*120)) : 0;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:4px;">${fmtNum(total)}</div>
+          <div style="width:100%;max-width:34px;display:flex;flex-direction:column;justify-content:flex-end;">
+            <div style="height:${orgH}px;background:var(--yellow);border:2px solid var(--ink);border-bottom:none;border-radius:${adsH===0?'6px 6px 2px 2px':'0'};"></div>
+            <div style="height:${adsH}px;background:var(--blue);border:2px solid var(--ink);border-radius:${adsH>0?'6px 6px 2px 2px':'0'};margin-top:${orgH>0?'-2px':'0'};"></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--grey-400);margin-top:6px;white-space:nowrap;">${fmtShortRange(r.week_start, r.week_end)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:11.5px;color:var(--grey-500,#888);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--blue);border:1px solid var(--ink);border-radius:2px;margin-right:5px;vertical-align:middle;"></span>Ads</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);border:1px solid var(--ink);border-radius:2px;margin-right:5px;vertical-align:middle;"></span>ออร์แกนิก</span>
+    </div>`;
+}
+function aggregateFbReportRows(rows){
+  const byWeek = new Map();
+  for(const r of rows){
+    const key = r.week_start;
+    if(!byWeek.has(key)) byWeek.set(key, { week_start:r.week_start, week_end:r.week_end, total_contacts:0, new_contacts:0, organic_contacts:0, ads_contacts:0, _rateSum:0, _rateDenom:0, _timeSum:0, _timeDenom:0 });
+    const agg = byWeek.get(key);
+    agg.total_contacts += Number(r.total_contacts||0);
+    agg.new_contacts += Number(r.new_contacts||0);
+    agg.organic_contacts += Number(r.organic_contacts||0);
+    agg.ads_contacts += Number(r.ads_contacts||0);
+    if(r.response_rate_pct!=null){ agg._rateSum += r.response_rate_pct*Number(r.total_contacts||0); agg._rateDenom += Number(r.total_contacts||0); }
+    if(r.avg_response_seconds!=null){ agg._timeSum += r.avg_response_seconds*Number(r.total_contacts||0); agg._timeDenom += Number(r.total_contacts||0); }
+  }
+  return [...byWeek.values()].map(a=>({
+    ...a,
+    response_rate_pct: a._rateDenom>0 ? a._rateSum/a._rateDenom : null,
+    avg_response_seconds: a._timeDenom>0 ? a._timeSum/a._timeDenom : null,
+  })).sort((a,b)=> a.week_start < b.week_start ? -1 : 1);
+}
 async function syncFbChatNow(){
   const btn = document.getElementById('fb-sync-btn');
   const statusEl = document.getElementById('fb-sync-status');
@@ -1521,7 +1661,7 @@ function exportCSV(kind){
 function renderAll(){
   document.body.classList.toggle('on-users', currentView==='users');
   if(currentView==='users'){ if(!appUsers.length) loadUsers(); else renderUsers(); }
-  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbChatStats(); }
+  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbChatStats(); loadAndRenderFbReport(); }
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
   if(currentView==='meetings') renderMeetingsCalendar();
