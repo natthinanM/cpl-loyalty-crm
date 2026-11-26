@@ -1235,7 +1235,7 @@ function renderFbReportForPage(){
   if(!rows.length) return;
 
   document.getElementById('fb-report-period').textContent =
-    `ข้อมูลตั้งแต่ ${fmtDate(rows[0].week_start)} ถึง ${fmtDate(rows[rows.length-1].week_end)} (อัปเดตจากรายงานล่าสุด)`;
+    `ข้อมูลตั้งแต่ ${fmtDate(rows[0].week_start)} ถึง ${fmtDate(rows[rows.length-1].week_end)} (ดึงตรงจาก Facebook)`;
 
   document.getElementById('fb-report-table-body').innerHTML = rows.map(r=>`
     <tr>
