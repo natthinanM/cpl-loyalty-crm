@@ -425,16 +425,15 @@
       </div>
       <div class="panel" id="fb-live-snapshot-panel" style="display:none;">
         <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <span>ข้อมูลล่าสุดจาก Facebook (Meta Business Suite)</span>
+          <span>ข้อมูลล่าสุดจาก Facebook (Meta Business Suite)<span class="branch-chip"></span></span>
           <span id="fb-live-fetched-at" style="font-size:12px;font-weight:600;color:var(--grey-500,#888);"></span>
         </div>
         <div style="font-size:12.5px;color:var(--grey-500,#888);margin:-8px 0 14px;">ดึงข้อมูลตามคำขอ — บอก Claude ว่า "ดึงข้อมูล Facebook ใหม่" เพื่ออัปเดต</div>
         <div id="fb-live-cards" style="display:flex;flex-direction:column;gap:14px;"></div>
       </div>
       <div class="panel" id="fb-report-panel" style="display:none;">
-        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <span>รายงานผลการตอบแชท Facebook Messenger</span>
-          <div class="fb-report-tabs" id="fb-report-tabs" style="display:flex;gap:6px;"></div>
+        <div class="panel-title">
+          <span>รายงานผลการตอบแชท Facebook Messenger<span class="branch-chip"></span></span>
         </div>
         <div style="font-size:12.5px;color:var(--grey-500,#888);margin:-8px 0 14px;" id="fb-report-period"></div>
         <div class="panel-title" style="font-size:14px;margin-bottom:10px;">ผู้ติดต่อทั้งหมดต่อสัปดาห์ (Ads vs ออร์แกนิก)</div>
@@ -1155,10 +1154,13 @@ function fmtDurationSec(sec){
 }
 async function loadAndRenderFbLiveSnapshot(){
   const panel = document.getElementById('fb-live-snapshot-panel');
+  const fbPage = BRANCH_TO_FB_PAGE[currentBranch];
+  if(!fbPage){ panel.style.display = 'none'; return; }
   try{
     const { data, error } = await supa
       .from('fb_live_snapshot')
       .select('page_name,period_start,period_end,total_contacts,new_contacts,organic_contacts,sponsored_contacts,response_rate_pct,avg_response_seconds,fetched_at')
+      .eq('page_name', fbPage)
       .order('page_name', { ascending: true });
     if(error) throw error;
     if(!data || data.length === 0){ panel.style.display = 'none'; return; }
@@ -1187,8 +1189,12 @@ async function loadAndRenderFbLiveSnapshot(){
     panel.style.display = 'none';
   }
 }
-let FB_REPORT_ROWS = [];
-let FB_REPORT_PAGE = 'ALL';
+// Each loyalty branch owns exactly one Facebook Page — no cross-branch mixing.
+// A branch with no key here (e.g. CPLEx DEU) simply has no Facebook data yet.
+const BRANCH_TO_FB_PAGE = {
+  'CPL Inter': 'CPL Inter',
+  'CPLEx JJ': 'CPLEx Chatuchak',
+};
 function fmtShortRange(ws, we){
   const a = new Date(ws+'T00:00:00'), b = new Date(we+'T00:00:00');
   if(isNaN(a)||isNaN(b)) return ws + ' – ' + we;
@@ -1200,42 +1206,34 @@ function fmtShortRange(ws, we){
 }
 async function loadAndRenderFbReport(){
   const panel = document.getElementById('fb-report-panel');
+  const fbPage = BRANCH_TO_FB_PAGE[currentBranch];
+  if(!fbPage){
+    panel.style.display = 'block';
+    document.getElementById('fb-report-period').textContent = `สาขา ${currentBranch} ยังไม่ได้เชื่อมต่อ Facebook Page`;
+    document.getElementById('fb-report-chart').innerHTML = '';
+    document.getElementById('fb-report-table-body').innerHTML = '';
+    return;
+  }
   try{
     const { data, error } = await supa
       .from('fb_weekly_reports')
       .select('page_name,week_start,week_end,total_contacts,new_contacts,organic_contacts,ads_contacts,response_rate_pct,avg_response_seconds')
+      .eq('page_name', fbPage)
       .order('week_start', { ascending: true });
     if(error) throw error;
     if(!data || data.length === 0){ panel.style.display = 'none'; return; }
-    FB_REPORT_ROWS = data;
     panel.style.display = 'block';
-
-    const pages = [...new Set(data.map(r=>r.page_name))];
-    const tabsEl = document.getElementById('fb-report-tabs');
-    const tabDefs = [{key:'ALL', label:'รวมทั้งหมด'}, ...pages.map(p=>({key:p, label:p}))];
-    if(!tabDefs.find(t=>t.key===FB_REPORT_PAGE)) FB_REPORT_PAGE = 'ALL';
-    tabsEl.innerHTML = tabDefs.map(t=>`
-      <button class="btn btn-sm ${FB_REPORT_PAGE===t.key ? 'btn-primary' : 'btn-outline'}" onclick="setFbReportPage('${t.key.replace(/'/g,"\\'")}')">${t.label}</button>
-    `).join('');
-
-    renderFbReportForPage();
+    renderFbReportRows(data, fbPage);
   }catch(e){
     console.error('load fb weekly report failed', e);
     panel.style.display = 'none';
   }
 }
-function setFbReportPage(key){
-  FB_REPORT_PAGE = key;
-  loadAndRenderFbReport();
-}
-function renderFbReportForPage(){
-  const rows = FB_REPORT_PAGE === 'ALL'
-    ? aggregateFbReportRows(FB_REPORT_ROWS)
-    : FB_REPORT_ROWS.filter(r=>r.page_name===FB_REPORT_PAGE);
+function renderFbReportRows(rows, fbPage){
   if(!rows.length) return;
 
   document.getElementById('fb-report-period').textContent =
-    `ข้อมูลตั้งแต่ ${fmtDate(rows[0].week_start)} ถึง ${fmtDate(rows[rows.length-1].week_end)} (ดึงตรงจาก Facebook)`;
+    `${fbPage} — ข้อมูลตั้งแต่ ${fmtDate(rows[0].week_start)} ถึง ${fmtDate(rows[rows.length-1].week_end)} (ดึงตรงจาก Facebook)`;
 
   document.getElementById('fb-report-table-body').innerHTML = rows.map(r=>`
     <tr>
@@ -1271,26 +1269,6 @@ function renderFbReportForPage(){
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);border:1px solid var(--ink);border-radius:2px;margin-right:5px;vertical-align:middle;"></span>ออร์แกนิก</span>
     </div>`;
 }
-function aggregateFbReportRows(rows){
-  const byWeek = new Map();
-  for(const r of rows){
-    const key = r.week_start;
-    if(!byWeek.has(key)) byWeek.set(key, { week_start:r.week_start, week_end:r.week_end, total_contacts:0, new_contacts:0, organic_contacts:0, ads_contacts:0, _rateSum:0, _rateDenom:0, _timeSum:0, _timeDenom:0 });
-    const agg = byWeek.get(key);
-    agg.total_contacts += Number(r.total_contacts||0);
-    agg.new_contacts += Number(r.new_contacts||0);
-    agg.organic_contacts += Number(r.organic_contacts||0);
-    agg.ads_contacts += Number(r.ads_contacts||0);
-    if(r.response_rate_pct!=null){ agg._rateSum += r.response_rate_pct*Number(r.total_contacts||0); agg._rateDenom += Number(r.total_contacts||0); }
-    if(r.avg_response_seconds!=null){ agg._timeSum += r.avg_response_seconds*Number(r.total_contacts||0); agg._timeDenom += Number(r.total_contacts||0); }
-  }
-  return [...byWeek.values()].map(a=>({
-    ...a,
-    response_rate_pct: a._rateDenom>0 ? a._rateSum/a._rateDenom : null,
-    avg_response_seconds: a._timeDenom>0 ? a._timeSum/a._timeDenom : null,
-  })).sort((a,b)=> a.week_start < b.week_start ? -1 : 1);
-}
-
 /* ============ RENDER: CUSTOMERS ============ */
 function renderCustomers(){
   const q = (document.getElementById('cust-search').value||'').trim().toLowerCase();
