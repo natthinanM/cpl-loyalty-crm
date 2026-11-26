@@ -423,26 +423,6 @@
         <div class="stat-card orange"><div class="stat-label">ธุรกรรมทั้งหมด</div><div class="stat-value" id="s-tx">0</div><div class="stat-sub">รายการให้/หักแต้ม</div><div class="curve-deco"></div></div>
         <div class="stat-card green"><div class="stat-label">ลูกค้าทำบัตรใหม่</div><div class="stat-value" id="s-newcard">0</div><div class="stat-sub">รายการ "โบนัสเมื่อทำบัตร"</div><div class="curve-deco"></div></div>
       </div>
-      <div class="panel">
-        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <span>การตอบแชทเพจ Facebook</span>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span id="fb-sync-status" style="font-size:12px;font-weight:600;color:var(--grey-500,#888);"></span>
-            <button class="btn btn-outline btn-sm" onclick="syncFbChatNow()" id="fb-sync-btn">ซิงค์เดี๋ยวนี้</button>
-          </div>
-        </div>
-        <div id="fb-chat-not-configured" class="empty-state" style="display:none;">
-          ยังไม่ได้ตั้งค่าการเชื่อมต่อ Facebook Page ในระบบ
-        </div>
-        <div id="fb-chat-content" style="display:none;">
-          <div class="stat-grid" style="margin-bottom:0;">
-            <div class="stat-card pink"><div class="stat-label">เวลาตอบกลับเฉลี่ย (วันนี้)</div><div class="stat-value" id="fb-avg-response">-</div><div class="stat-sub" id="fb-median-response"></div><div class="curve-deco"></div></div>
-            <div class="stat-card blue"><div class="stat-label">แชททั้งหมดวันนี้</div><div class="stat-value" id="fb-total-chats">0</div><div class="stat-sub" id="fb-answered-breakdown"></div><div class="curve-deco"></div></div>
-          </div>
-          <table style="margin-top:16px;"><thead><tr><th>วันที่</th><th>แชททั้งหมด</th><th>ตอบแล้ว</th><th>ยังไม่ตอบ</th><th>เวลาตอบกลับเฉลี่ย</th></tr></thead>
-          <tbody id="fb-chat-trend-body"></tbody></table>
-        </div>
-      </div>
       <div class="panel" id="fb-live-snapshot-panel" style="display:none;">
         <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
           <span>ข้อมูลล่าสุดจาก Facebook (Meta Business Suite)</span>
@@ -450,16 +430,6 @@
         </div>
         <div style="font-size:12.5px;color:var(--grey-500,#888);margin:-8px 0 14px;">ดึงข้อมูลตามคำขอ — บอก Claude ว่า "ดึงข้อมูล Facebook ใหม่" เพื่ออัปเดต</div>
         <div id="fb-live-cards" style="display:flex;flex-direction:column;gap:14px;"></div>
-      </div>
-      <div class="panel" id="fb-weekly-report-panel" style="display:none;">
-        <div class="panel-title">รายงานการตอบแชทประจำสัปดาห์ (7 วันล่าสุด)</div>
-        <div class="stat-grid" style="margin-bottom:16px;">
-          <div class="stat-card pink"><div class="stat-label">แชททั้งหมดสัปดาห์นี้</div><div class="stat-value" id="fbw-total">0</div><div class="stat-sub" id="fbw-range"></div><div class="curve-deco"></div></div>
-          <div class="stat-card blue"><div class="stat-label">เวลาตอบกลับเฉลี่ย (สัปดาห์)</div><div class="stat-value" id="fbw-avg">-</div><div class="stat-sub">ถ่วงน้ำหนักตามจำนวนแชทที่ตอบ</div><div class="curve-deco"></div></div>
-          <div class="stat-card green"><div class="stat-label">อัตราตอบกลับ</div><div class="stat-value" id="fbw-rate">-</div><div class="stat-sub" id="fbw-rate-sub"></div><div class="curve-deco"></div></div>
-        </div>
-        <div class="panel-title" style="font-size:14px;margin-bottom:10px;">เทรนด์แชทรายวันในสัปดาห์</div>
-        <div id="fb-weekly-chart"></div>
       </div>
       <div class="panel" id="fb-report-panel" style="display:none;">
         <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -1189,119 +1159,6 @@ function fmtDurationSec(sec){
   const hrs = Math.floor(mins/60);
   return hrs + ' ชม. ' + (mins%60) + ' นาที';
 }
-async function loadAndRenderFbChatStats(){
-  const notConfiguredEl = document.getElementById('fb-chat-not-configured');
-  const contentEl = document.getElementById('fb-chat-content');
-  try{
-    const since = fmtISODate(new Date(Date.now() - 6*24*60*60*1000));
-    const { data: rawRows, error } = await supa
-      .from('fb_chat_daily_stats')
-      .select('stat_date,page_id,page_name,total_chats,answered_chats,unanswered_chats,avg_response_seconds,median_response_seconds')
-      .gte('stat_date', since)
-      .order('stat_date', { ascending: false });
-    if(error) throw error;
-
-    if(!rawRows || rawRows.length === 0){
-      notConfiguredEl.style.display = 'block';
-      notConfiguredEl.textContent = 'ยังไม่มีข้อมูลแชทซิงค์เข้ามา — กด "ซิงค์เดี๋ยวนี้" หลังตั้งค่า Facebook Page เสร็จแล้ว';
-      contentEl.style.display = 'none';
-      document.getElementById('fb-weekly-report-panel').style.display = 'none';
-      return;
-    }
-    notConfiguredEl.style.display = 'none';
-    contentEl.style.display = 'block';
-
-    // Combine rows across every connected Page into one row per date (sum counts,
-    // weight the average response time by how many chats were answered that day).
-    const byDate = new Map();
-    for(const r of rawRows){
-      if(!byDate.has(r.stat_date)) byDate.set(r.stat_date, { stat_date:r.stat_date, total_chats:0, answered_chats:0, unanswered_chats:0, _weightedSec:0 });
-      const agg = byDate.get(r.stat_date);
-      agg.total_chats += Number(r.total_chats||0);
-      agg.answered_chats += Number(r.answered_chats||0);
-      agg.unanswered_chats += Number(r.unanswered_chats||0);
-      agg._weightedSec += (r.avg_response_seconds!=null ? r.avg_response_seconds*Number(r.answered_chats||0) : 0);
-    }
-    const data = [...byDate.values()].map(agg=>({
-      ...agg,
-      avg_response_seconds: agg.answered_chats>0 ? agg._weightedSec/agg.answered_chats : null,
-      median_response_seconds: null,
-    })).sort((a,b)=> a.stat_date < b.stat_date ? 1 : -1);
-
-    const todayISO = fmtISODate(new Date());
-    const today = data.find(d=>d.stat_date===todayISO);
-    const todayByPage = rawRows.filter(r=>r.stat_date===todayISO);
-
-    document.getElementById('fb-avg-response').textContent = today ? fmtDurationSec(today.avg_response_seconds) : '-';
-    document.getElementById('fb-median-response').textContent = todayByPage.length
-      ? todayByPage.map(r=>`${escapeHtml(r.page_name||r.page_id)}: ${fmtNum(r.total_chats)}`).join(' · ')
-      : 'ยังไม่มีแชทวันนี้';
-    document.getElementById('fb-total-chats').textContent = fmtNum(today ? today.total_chats : 0);
-    document.getElementById('fb-answered-breakdown').textContent = today
-      ? `ตอบแล้ว ${fmtNum(today.answered_chats)} · ยังไม่ตอบ ${fmtNum(today.unanswered_chats)}`
-      : 'ยังไม่มีแชทวันนี้';
-
-    document.getElementById('fb-chat-trend-body').innerHTML = data.map(d=>`
-      <tr>
-        <td>${fmtDate(d.stat_date)}</td>
-        <td>${fmtNum(d.total_chats)}</td>
-        <td>${fmtNum(d.answered_chats)}</td>
-        <td>${d.unanswered_chats ? '<span style="color:#c23b3b;font-weight:600;">'+fmtNum(d.unanswered_chats)+'</span>' : '0'}</td>
-        <td>${fmtDurationSec(d.avg_response_seconds)}</td>
-      </tr>
-    `).join('');
-
-    renderFbWeeklyReport(data);
-  }catch(e){
-    console.error('load fb chat stats failed', e);
-    notConfiguredEl.style.display = 'block';
-    notConfiguredEl.textContent = 'โหลดข้อมูลแชทไม่สำเร็จ: ' + (e.message||e);
-    contentEl.style.display = 'none';
-    document.getElementById('fb-weekly-report-panel').style.display = 'none';
-  }
-}
-function fmtShortDay(iso){
-  const dt = new Date(iso+'T00:00:00');
-  if(isNaN(dt)) return iso;
-  return CAL_DOW_TH[dt.getDay()] + ' ' + dt.getDate();
-}
-function renderFbWeeklyReport(data){
-  const panel = document.getElementById('fb-weekly-report-panel');
-  if(!data || data.length === 0){ panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-
-  const sortedAsc = [...data].sort((a,b)=> a.stat_date < b.stat_date ? -1 : 1);
-
-  const totalChats = sortedAsc.reduce((s,d)=>s+Number(d.total_chats||0),0);
-  const totalAnswered = sortedAsc.reduce((s,d)=>s+Number(d.answered_chats||0),0);
-  const totalUnanswered = sortedAsc.reduce((s,d)=>s+Number(d.unanswered_chats||0),0);
-  // Weighted average response time, weighted by how many chats were answered each day.
-  const weightedSecSum = sortedAsc.reduce((s,d)=> s + (d.avg_response_seconds!=null ? d.avg_response_seconds*Number(d.answered_chats||0) : 0), 0);
-  const weeklyAvgSec = totalAnswered > 0 ? weightedSecSum / totalAnswered : null;
-  const answerRate = totalChats > 0 ? Math.round(totalAnswered/totalChats*100) : null;
-
-  document.getElementById('fbw-total').textContent = fmtNum(totalChats);
-  document.getElementById('fbw-range').textContent = sortedAsc.length
-    ? fmtDate(sortedAsc[0].stat_date) + ' – ' + fmtDate(sortedAsc[sortedAsc.length-1].stat_date)
-    : '';
-  document.getElementById('fbw-avg').textContent = weeklyAvgSec!=null ? fmtDurationSec(weeklyAvgSec) : '-';
-  document.getElementById('fbw-rate').textContent = answerRate!=null ? answerRate + '%' : '-';
-  document.getElementById('fbw-rate-sub').textContent = `ตอบแล้ว ${fmtNum(totalAnswered)} จาก ${fmtNum(totalChats)} · ยังไม่ตอบ ${fmtNum(totalUnanswered)}`;
-
-  const max = Math.max(1, ...sortedAsc.map(d=>Number(d.total_chats||0)));
-  document.getElementById('fb-weekly-chart').innerHTML = `
-    <div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding:4px 2px 0;">
-      ${sortedAsc.map(d=>{
-        const h = Math.max(4, Math.round(Number(d.total_chats||0)/max*110));
-        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;">
-          <div style="font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:4px;">${fmtNum(d.total_chats)}</div>
-          <div style="width:100%;max-width:40px;height:${h}px;background:var(--blue);border:2px solid var(--ink);border-radius:6px 6px 2px 2px;"></div>
-          <div style="font-size:11px;color:var(--grey-400);margin-top:6px;white-space:nowrap;">${fmtShortDay(d.stat_date)}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
 async function loadAndRenderFbLiveSnapshot(){
   const panel = document.getElementById('fb-live-snapshot-panel');
   try{
@@ -1457,29 +1314,6 @@ function aggregateFbReportRows(rows){
     response_rate_pct: a._rateDenom>0 ? a._rateSum/a._rateDenom : null,
     avg_response_seconds: a._timeDenom>0 ? a._timeSum/a._timeDenom : null,
   })).sort((a,b)=> a.week_start < b.week_start ? -1 : 1);
-}
-async function syncFbChatNow(){
-  const btn = document.getElementById('fb-sync-btn');
-  const statusEl = document.getElementById('fb-sync-status');
-  btn.disabled = true;
-  statusEl.textContent = 'กำลังซิงค์...';
-  try{
-    const res = await fetch(FB_SYNC_FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'x-sync-secret': FB_SYNC_TRIGGER_SECRET }
-    });
-    const json = await res.json();
-    if(!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
-    statusEl.textContent = 'ซิงค์แล้ว: ' + (json.conversationsScanned||0) + ' แชท';
-    await loadAndRenderFbChatStats();
-  }catch(e){
-    console.error('fb sync failed', e);
-    statusEl.textContent = 'ซิงค์ไม่สำเร็จ';
-    toast('ซิงค์แชท Facebook ไม่สำเร็จ: ' + (e.message||e));
-  }finally{
-    btn.disabled = false;
-    setTimeout(()=>{ if(statusEl.textContent.startsWith('ซิงค์')) statusEl.textContent=''; }, 5000);
-  }
 }
 
 /* ============ RENDER: CUSTOMERS ============ */
@@ -1703,7 +1537,7 @@ function exportCSV(kind){
 function renderAll(){
   document.body.classList.toggle('on-users', currentView==='users');
   if(currentView==='users'){ if(!appUsers.length) loadUsers(); else renderUsers(); }
-  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbChatStats(); loadAndRenderFbReport(); loadAndRenderFbLiveSnapshot(); }
+  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbReport(); loadAndRenderFbLiveSnapshot(); }
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
   if(currentView==='meetings') renderMeetingsCalendar();
