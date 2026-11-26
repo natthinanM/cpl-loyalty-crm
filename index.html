@@ -443,6 +443,16 @@
           <tbody id="fb-chat-trend-body"></tbody></table>
         </div>
       </div>
+      <div class="panel" id="fb-weekly-report-panel" style="display:none;">
+        <div class="panel-title">รายงานการตอบแชทประจำสัปดาห์ (7 วันล่าสุด)</div>
+        <div class="stat-grid" style="margin-bottom:16px;">
+          <div class="stat-card pink"><div class="stat-label">แชททั้งหมดสัปดาห์นี้</div><div class="stat-value" id="fbw-total">0</div><div class="stat-sub" id="fbw-range"></div><div class="curve-deco"></div></div>
+          <div class="stat-card blue"><div class="stat-label">เวลาตอบกลับเฉลี่ย (สัปดาห์)</div><div class="stat-value" id="fbw-avg">-</div><div class="stat-sub">ถ่วงน้ำหนักตามจำนวนแชทที่ตอบ</div><div class="curve-deco"></div></div>
+          <div class="stat-card green"><div class="stat-label">อัตราตอบกลับ</div><div class="stat-value" id="fbw-rate">-</div><div class="stat-sub" id="fbw-rate-sub"></div><div class="curve-deco"></div></div>
+        </div>
+        <div class="panel-title" style="font-size:14px;margin-bottom:10px;">เทรนด์แชทรายวันในสัปดาห์</div>
+        <div id="fb-weekly-chart"></div>
+      </div>
       <div class="panel">
         <div class="panel-title">แต้มแยกตามประเภท</div>
         <div id="type-bars"></div>
@@ -1195,12 +1205,56 @@ async function loadAndRenderFbChatStats(){
         <td>${fmtDurationSec(d.avg_response_seconds)}</td>
       </tr>
     `).join('');
+
+    renderFbWeeklyReport(data);
   }catch(e){
     console.error('load fb chat stats failed', e);
     notConfiguredEl.style.display = 'block';
     notConfiguredEl.textContent = 'โหลดข้อมูลแชทไม่สำเร็จ: ' + (e.message||e);
     contentEl.style.display = 'none';
+    document.getElementById('fb-weekly-report-panel').style.display = 'none';
   }
+}
+function fmtShortDay(iso){
+  const dt = new Date(iso+'T00:00:00');
+  if(isNaN(dt)) return iso;
+  return CAL_DOW_TH[dt.getDay()] + ' ' + dt.getDate();
+}
+function renderFbWeeklyReport(data){
+  const panel = document.getElementById('fb-weekly-report-panel');
+  if(!data || data.length === 0){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const sortedAsc = [...data].sort((a,b)=> a.stat_date < b.stat_date ? -1 : 1);
+
+  const totalChats = sortedAsc.reduce((s,d)=>s+Number(d.total_chats||0),0);
+  const totalAnswered = sortedAsc.reduce((s,d)=>s+Number(d.answered_chats||0),0);
+  const totalUnanswered = sortedAsc.reduce((s,d)=>s+Number(d.unanswered_chats||0),0);
+  // Weighted average response time, weighted by how many chats were answered each day.
+  const weightedSecSum = sortedAsc.reduce((s,d)=> s + (d.avg_response_seconds!=null ? d.avg_response_seconds*Number(d.answered_chats||0) : 0), 0);
+  const weeklyAvgSec = totalAnswered > 0 ? weightedSecSum / totalAnswered : null;
+  const answerRate = totalChats > 0 ? Math.round(totalAnswered/totalChats*100) : null;
+
+  document.getElementById('fbw-total').textContent = fmtNum(totalChats);
+  document.getElementById('fbw-range').textContent = sortedAsc.length
+    ? fmtDate(sortedAsc[0].stat_date) + ' – ' + fmtDate(sortedAsc[sortedAsc.length-1].stat_date)
+    : '';
+  document.getElementById('fbw-avg').textContent = weeklyAvgSec!=null ? fmtDurationSec(weeklyAvgSec) : '-';
+  document.getElementById('fbw-rate').textContent = answerRate!=null ? answerRate + '%' : '-';
+  document.getElementById('fbw-rate-sub').textContent = `ตอบแล้ว ${fmtNum(totalAnswered)} จาก ${fmtNum(totalChats)} · ยังไม่ตอบ ${fmtNum(totalUnanswered)}`;
+
+  const max = Math.max(1, ...sortedAsc.map(d=>Number(d.total_chats||0)));
+  document.getElementById('fb-weekly-chart').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding:4px 2px 0;">
+      ${sortedAsc.map(d=>{
+        const h = Math.max(4, Math.round(Number(d.total_chats||0)/max*110));
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;">
+          <div style="font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:4px;">${fmtNum(d.total_chats)}</div>
+          <div style="width:100%;max-width:40px;height:${h}px;background:var(--blue);border:2px solid var(--ink);border-radius:6px 6px 2px 2px;"></div>
+          <div style="font-size:11px;color:var(--grey-400);margin-top:6px;white-space:nowrap;">${fmtShortDay(d.stat_date)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 async function syncFbChatNow(){
   const btn = document.getElementById('fb-sync-btn');
@@ -1472,6 +1526,10 @@ const I18N_EN = {
   'เวลาตอบกลับเฉลี่ย (วันนี้)':"Today's avg response time",'แชททั้งหมดวันนี้':'Total chats today',
   'แชททั้งหมด':'Total chats','ตอบแล้ว':'Answered','ยังไม่ตอบ':'Unanswered','เวลาตอบกลับเฉลี่ย':'Avg response time',
   'ยังไม่ได้ตั้งค่าการเชื่อมต่อ Facebook Page ในระบบ':'Facebook Page connection not configured yet',
+  'รายงานการตอบแชทประจำสัปดาห์ (7 วันล่าสุด)':'Weekly chat response report (last 7 days)',
+  'แชททั้งหมดสัปดาห์นี้':"This week's total chats",'เวลาตอบกลับเฉลี่ย (สัปดาห์)':'Avg response time (week)',
+  'ถ่วงน้ำหนักตามจำนวนแชทที่ตอบ':'Weighted by chats answered','อัตราตอบกลับ':'Answer rate',
+  'เทรนด์แชทรายวันในสัปดาห์':'Daily chat trend this week',
   'ชื่อลูกค้า':'Customer','ชื่อ-นามสกุล':'Full name','แต้มรวม':'Total points','จำนวนรายการ':'Entries',
   'สรุปแต้มสะสมรวมต่อลูกค้าหนึ่งคน':'Total points per customer','ค้นหาชื่อลูกค้า, ID ผู้ใช้...':'Search name or user ID…','ส่งออก CSV':'Export CSV',
   'ชื่อลูกค้า (ออนไลน์)':'Customer (online name)','ID ผู้ใช้':'User ID','แต้มสะสม':'Points','ไม่พบข้อมูลลูกค้า':'No customers found',
