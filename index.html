@@ -1169,28 +1169,48 @@ async function loadAndRenderFbChatStats(){
   const contentEl = document.getElementById('fb-chat-content');
   try{
     const since = fmtISODate(new Date(Date.now() - 6*24*60*60*1000));
-    const { data, error } = await supa
+    const { data: rawRows, error } = await supa
       .from('fb_chat_daily_stats')
-      .select('stat_date,total_chats,answered_chats,unanswered_chats,avg_response_seconds,median_response_seconds')
+      .select('stat_date,page_id,page_name,total_chats,answered_chats,unanswered_chats,avg_response_seconds,median_response_seconds')
       .gte('stat_date', since)
       .order('stat_date', { ascending: false });
     if(error) throw error;
 
-    if(!data || data.length === 0){
+    if(!rawRows || rawRows.length === 0){
       notConfiguredEl.style.display = 'block';
       notConfiguredEl.textContent = 'ยังไม่มีข้อมูลแชทซิงค์เข้ามา — กด "ซิงค์เดี๋ยวนี้" หลังตั้งค่า Facebook Page เสร็จแล้ว';
       contentEl.style.display = 'none';
+      document.getElementById('fb-weekly-report-panel').style.display = 'none';
       return;
     }
     notConfiguredEl.style.display = 'none';
     contentEl.style.display = 'block';
 
+    // Combine rows across every connected Page into one row per date (sum counts,
+    // weight the average response time by how many chats were answered that day).
+    const byDate = new Map();
+    for(const r of rawRows){
+      if(!byDate.has(r.stat_date)) byDate.set(r.stat_date, { stat_date:r.stat_date, total_chats:0, answered_chats:0, unanswered_chats:0, _weightedSec:0 });
+      const agg = byDate.get(r.stat_date);
+      agg.total_chats += Number(r.total_chats||0);
+      agg.answered_chats += Number(r.answered_chats||0);
+      agg.unanswered_chats += Number(r.unanswered_chats||0);
+      agg._weightedSec += (r.avg_response_seconds!=null ? r.avg_response_seconds*Number(r.answered_chats||0) : 0);
+    }
+    const data = [...byDate.values()].map(agg=>({
+      ...agg,
+      avg_response_seconds: agg.answered_chats>0 ? agg._weightedSec/agg.answered_chats : null,
+      median_response_seconds: null,
+    })).sort((a,b)=> a.stat_date < b.stat_date ? 1 : -1);
+
     const todayISO = fmtISODate(new Date());
     const today = data.find(d=>d.stat_date===todayISO);
+    const todayByPage = rawRows.filter(r=>r.stat_date===todayISO);
 
     document.getElementById('fb-avg-response').textContent = today ? fmtDurationSec(today.avg_response_seconds) : '-';
-    document.getElementById('fb-median-response').textContent = today && today.median_response_seconds!=null
-      ? 'มัธยฐาน ' + fmtDurationSec(today.median_response_seconds) : 'ยังไม่มีแชทวันนี้';
+    document.getElementById('fb-median-response').textContent = todayByPage.length
+      ? todayByPage.map(r=>`${escapeHtml(r.page_name||r.page_id)}: ${fmtNum(r.total_chats)}`).join(' · ')
+      : 'ยังไม่มีแชทวันนี้';
     document.getElementById('fb-total-chats').textContent = fmtNum(today ? today.total_chats : 0);
     document.getElementById('fb-answered-breakdown').textContent = today
       ? `ตอบแล้ว ${fmtNum(today.answered_chats)} · ยังไม่ตอบ ${fmtNum(today.unanswered_chats)}`
