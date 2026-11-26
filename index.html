@@ -178,6 +178,7 @@
 
   .panel{background:var(--white);border:var(--border);border-radius:var(--radius);padding:24px;margin-bottom:22px;}
   .panel-title{font-weight:800;font-size:20px;letter-spacing:-.4px;color:var(--ink);margin:0 0 16px;font-family:var(--sans);}
+  .section-divider{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--fill-text,#888);margin:6px 0 14px;padding-top:10px;border-top:2px dashed var(--ink-10,rgba(0,0,0,.12));}
 
   table{width:100%;border-collapse:collapse;font-size:14px;}
   th{text-align:left;padding:12px 14px;color:var(--grey-700);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid var(--ink);white-space:nowrap;}
@@ -423,6 +424,16 @@
         <div class="stat-card orange"><div class="stat-label">ธุรกรรมทั้งหมด</div><div class="stat-value" id="s-tx">0</div><div class="stat-sub">รายการให้/หักแต้ม</div><div class="curve-deco"></div></div>
         <div class="stat-card green"><div class="stat-label">ลูกค้าทำบัตรใหม่</div><div class="stat-value" id="s-newcard">0</div><div class="stat-sub">รายการ "โบนัสเมื่อทำบัตร"</div><div class="curve-deco"></div></div>
       </div>
+      <div class="panel">
+        <div class="panel-title">แต้มแยกตามประเภท</div>
+        <div id="type-bars"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">ลูกค้าแต้มสูงสุด 5 อันดับ</div>
+        <table><thead><tr><th>ชื่อลูกค้า</th><th>ชื่อ-นามสกุล</th><th>แต้มรวม</th><th>จำนวนรายการ</th></tr></thead>
+        <tbody id="top-customers-body"></tbody></table>
+      </div>
+      <div class="section-divider">Facebook Messenger —</div>
       <div class="panel" id="fb-live-snapshot-panel" style="display:none;">
         <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
           <span>ข้อมูลล่าสุดจาก Facebook (Meta Business Suite)<span class="branch-chip"></span></span>
@@ -440,15 +451,6 @@
         <div id="fb-report-chart" style="margin-bottom:20px;"></div>
         <table><thead><tr><th>ช่วง</th><th>ทั้งหมด</th><th>ใหม่</th><th>ออร์แกนิก</th><th>Ads</th><th>ตอบกลับ</th><th>เวลาตอบกลับ</th></tr></thead>
         <tbody id="fb-report-table-body"></tbody></table>
-      </div>
-      <div class="panel">
-        <div class="panel-title">แต้มแยกตามประเภท</div>
-        <div id="type-bars"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">ลูกค้าแต้มสูงสุด 5 อันดับ</div>
-        <table><thead><tr><th>ชื่อลูกค้า</th><th>ชื่อ-นามสกุล</th><th>แต้มรวม</th><th>จำนวนรายการ</th></tr></thead>
-        <tbody id="top-customers-body"></tbody></table>
       </div>
     </div>
 
