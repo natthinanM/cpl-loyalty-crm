@@ -169,6 +169,8 @@
   .stat-card{background:var(--sky);border:var(--border);border-radius:var(--radius);padding:22px 22px 20px;position:relative;overflow:hidden;transition:transform .15s, box-shadow .15s;}
   .stat-card:hover{transform:translate(-3px,-3px);box-shadow:var(--shadow-md);}
   .stat-card.navy{background:var(--yellow);} .stat-card.orange{background:var(--peach);} .stat-card.green{background:var(--green);}
+  .stat-card.pink{background:var(--pink);} .stat-card.blue{background:var(--blue);color:#fff;}
+  .stat-card.blue .stat-label, .stat-card.blue .stat-sub{color:#fff;opacity:.85;}
   .stat-label{font-size:13px;font-weight:700;margin-bottom:10px;display:inline-block;background:var(--white);border:1.5px solid var(--ink);border-radius:999px;padding:3px 11px;}
   .stat-value{font-family:var(--sans);font-size:54px;line-height:1;font-weight:900;letter-spacing:-2px;color:var(--ink);}
   .stat-sub{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink);margin-top:8px;opacity:.85;}
@@ -420,6 +422,26 @@
         <div class="stat-card"><div class="stat-label">ลูกค้าที่มีคะแนนแลกคูปองได้</div><div class="stat-value" id="s-points">0</div><div class="stat-sub">มี 10 แต้มขึ้นไป</div><div class="curve-deco"></div></div>
         <div class="stat-card orange"><div class="stat-label">ธุรกรรมทั้งหมด</div><div class="stat-value" id="s-tx">0</div><div class="stat-sub">รายการให้/หักแต้ม</div><div class="curve-deco"></div></div>
         <div class="stat-card green"><div class="stat-label">ลูกค้าทำบัตรใหม่</div><div class="stat-value" id="s-newcard">0</div><div class="stat-sub">รายการ "โบนัสเมื่อทำบัตร"</div><div class="curve-deco"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <span>การตอบแชทเพจ Facebook</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="fb-sync-status" style="font-size:12px;font-weight:600;color:var(--grey-500,#888);"></span>
+            <button class="btn btn-outline btn-sm" onclick="syncFbChatNow()" id="fb-sync-btn">ซิงค์เดี๋ยวนี้</button>
+          </div>
+        </div>
+        <div id="fb-chat-not-configured" class="empty-state" style="display:none;">
+          ยังไม่ได้ตั้งค่าการเชื่อมต่อ Facebook Page ในระบบ
+        </div>
+        <div id="fb-chat-content" style="display:none;">
+          <div class="stat-grid" style="margin-bottom:0;">
+            <div class="stat-card pink"><div class="stat-label">เวลาตอบกลับเฉลี่ย (วันนี้)</div><div class="stat-value" id="fb-avg-response">-</div><div class="stat-sub" id="fb-median-response"></div><div class="curve-deco"></div></div>
+            <div class="stat-card blue"><div class="stat-label">แชททั้งหมดวันนี้</div><div class="stat-value" id="fb-total-chats">0</div><div class="stat-sub" id="fb-answered-breakdown"></div><div class="curve-deco"></div></div>
+          </div>
+          <table style="margin-top:16px;"><thead><tr><th>วันที่</th><th>แชททั้งหมด</th><th>ตอบแล้ว</th><th>ยังไม่ตอบ</th><th>เวลาตอบกลับเฉลี่ย</th></tr></thead>
+          <tbody id="fb-chat-trend-body"></tbody></table>
+        </div>
       </div>
       <div class="panel">
         <div class="panel-title">แต้มแยกตามประเภท</div>
@@ -698,6 +720,13 @@ const TABLE = 'loyalty_transactions';
 
 const COUPON_MIN_POINTS = 10; // แต้มขั้นต่ำที่แลกคูปองได้
 const TYPE_PILL = {'โบนัสเมื่อทำบัตร':'pill-green','ส่งสินค้า':'pill-blue'};
+
+// Facebook Page chat-response dashboard: data is synced server-side by the
+// "fb-chat-sync" Supabase Edge Function (holds the real Page Access Token).
+// This trigger secret only gates manual "sync now" calls to that function —
+// it is not the Facebook token itself. Fill in once set in Supabase secrets.
+const FB_SYNC_FUNCTION_URL = SUPABASE_URL + '/functions/v1/fb-chat-sync';
+const FB_SYNC_TRIGGER_SECRET = ''; // e.g. 'cpl-sync-7f3e9a2b1c'
 
 /* ============ STATE ============ */
 const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1115,6 +1144,88 @@ function renderDashboard(){
   `).join('') || '<tr><td colspan="4" style="color:var(--grey-400);text-align:center;">ยังไม่มีข้อมูล</td></tr>';
 }
 
+/* ============ FACEBOOK PAGE CHAT DASHBOARD ============ */
+function fmtDurationSec(sec){
+  if(sec===null || sec===undefined) return '-';
+  sec = Math.round(sec);
+  if(sec < 60) return sec + ' วินาที';
+  const mins = Math.floor(sec/60);
+  if(mins < 60) return mins + ' นาที' + (sec%60 ? ' ' + (sec%60) + ' วิ' : '');
+  const hrs = Math.floor(mins/60);
+  return hrs + ' ชม. ' + (mins%60) + ' นาที';
+}
+async function loadAndRenderFbChatStats(){
+  const notConfiguredEl = document.getElementById('fb-chat-not-configured');
+  const contentEl = document.getElementById('fb-chat-content');
+  try{
+    const since = fmtISODate(new Date(Date.now() - 6*24*60*60*1000));
+    const { data, error } = await supa
+      .from('fb_chat_daily_stats')
+      .select('stat_date,total_chats,answered_chats,unanswered_chats,avg_response_seconds,median_response_seconds')
+      .gte('stat_date', since)
+      .order('stat_date', { ascending: false });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      notConfiguredEl.style.display = 'block';
+      notConfiguredEl.textContent = 'ยังไม่มีข้อมูลแชทซิงค์เข้ามา — กด "ซิงค์เดี๋ยวนี้" หลังตั้งค่า Facebook Page เสร็จแล้ว';
+      contentEl.style.display = 'none';
+      return;
+    }
+    notConfiguredEl.style.display = 'none';
+    contentEl.style.display = 'block';
+
+    const todayISO = fmtISODate(new Date());
+    const today = data.find(d=>d.stat_date===todayISO);
+
+    document.getElementById('fb-avg-response').textContent = today ? fmtDurationSec(today.avg_response_seconds) : '-';
+    document.getElementById('fb-median-response').textContent = today && today.median_response_seconds!=null
+      ? 'มัธยฐาน ' + fmtDurationSec(today.median_response_seconds) : 'ยังไม่มีแชทวันนี้';
+    document.getElementById('fb-total-chats').textContent = fmtNum(today ? today.total_chats : 0);
+    document.getElementById('fb-answered-breakdown').textContent = today
+      ? `ตอบแล้ว ${fmtNum(today.answered_chats)} · ยังไม่ตอบ ${fmtNum(today.unanswered_chats)}`
+      : 'ยังไม่มีแชทวันนี้';
+
+    document.getElementById('fb-chat-trend-body').innerHTML = data.map(d=>`
+      <tr>
+        <td>${fmtDate(d.stat_date)}</td>
+        <td>${fmtNum(d.total_chats)}</td>
+        <td>${fmtNum(d.answered_chats)}</td>
+        <td>${d.unanswered_chats ? '<span style="color:#c23b3b;font-weight:600;">'+fmtNum(d.unanswered_chats)+'</span>' : '0'}</td>
+        <td>${fmtDurationSec(d.avg_response_seconds)}</td>
+      </tr>
+    `).join('');
+  }catch(e){
+    console.error('load fb chat stats failed', e);
+    notConfiguredEl.style.display = 'block';
+    notConfiguredEl.textContent = 'โหลดข้อมูลแชทไม่สำเร็จ: ' + (e.message||e);
+    contentEl.style.display = 'none';
+  }
+}
+async function syncFbChatNow(){
+  const btn = document.getElementById('fb-sync-btn');
+  const statusEl = document.getElementById('fb-sync-status');
+  btn.disabled = true;
+  statusEl.textContent = 'กำลังซิงค์...';
+  try{
+    const res = await fetch(FB_SYNC_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'x-sync-secret': FB_SYNC_TRIGGER_SECRET }
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    statusEl.textContent = 'ซิงค์แล้ว: ' + (json.conversationsScanned||0) + ' แชท';
+    await loadAndRenderFbChatStats();
+  }catch(e){
+    console.error('fb sync failed', e);
+    statusEl.textContent = 'ซิงค์ไม่สำเร็จ';
+    toast('ซิงค์แชท Facebook ไม่สำเร็จ: ' + (e.message||e));
+  }finally{
+    btn.disabled = false;
+    setTimeout(()=>{ if(statusEl.textContent.startsWith('ซิงค์')) statusEl.textContent=''; }, 5000);
+  }
+}
+
 /* ============ RENDER: CUSTOMERS ============ */
 function renderCustomers(){
   const q = (document.getElementById('cust-search').value||'').trim().toLowerCase();
@@ -1336,7 +1447,7 @@ function exportCSV(kind){
 function renderAll(){
   document.body.classList.toggle('on-users', currentView==='users');
   if(currentView==='users'){ if(!appUsers.length) loadUsers(); else renderUsers(); }
-  if(currentView==='dashboard') renderDashboard();
+  if(currentView==='dashboard'){ renderDashboard(); loadAndRenderFbChatStats(); }
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
   if(currentView==='meetings') renderMeetingsCalendar();
@@ -1357,6 +1468,10 @@ const I18N_EN = {
   'ลูกค้าทั้งหมด':'Total customers','บัญชีที่มีกิจกรรม':'active accounts','ลูกค้าที่มีคะแนนแลกคูปองได้':'Coupon-eligible customers','มี 10 แต้มขึ้นไป':'with 10+ points',
   'ธุรกรรมทั้งหมด':'Transactions','รายการให้/หักแต้ม':'points added / deducted','ลูกค้าทำบัตรใหม่':'New cardholders','รายการ "โบนัสเมื่อทำบัตร"':'"Sign-up bonus" entries',
   'แต้มแยกตามประเภท':'Points by type','ลูกค้าแต้มสูงสุด 5 อันดับ':'Top 5 customers by points',
+  'การตอบแชทเพจ Facebook':'Facebook Page chat replies','ซิงค์เดี๋ยวนี้':'Sync now',
+  'เวลาตอบกลับเฉลี่ย (วันนี้)':"Today's avg response time",'แชททั้งหมดวันนี้':'Total chats today',
+  'แชททั้งหมด':'Total chats','ตอบแล้ว':'Answered','ยังไม่ตอบ':'Unanswered','เวลาตอบกลับเฉลี่ย':'Avg response time',
+  'ยังไม่ได้ตั้งค่าการเชื่อมต่อ Facebook Page ในระบบ':'Facebook Page connection not configured yet',
   'ชื่อลูกค้า':'Customer','ชื่อ-นามสกุล':'Full name','แต้มรวม':'Total points','จำนวนรายการ':'Entries',
   'สรุปแต้มสะสมรวมต่อลูกค้าหนึ่งคน':'Total points per customer','ค้นหาชื่อลูกค้า, ID ผู้ใช้...':'Search name or user ID…','ส่งออก CSV':'Export CSV',
   'ชื่อลูกค้า (ออนไลน์)':'Customer (online name)','ID ผู้ใช้':'User ID','แต้มสะสม':'Points','ไม่พบข้อมูลลูกค้า':'No customers found',
