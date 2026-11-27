@@ -96,6 +96,13 @@
   .nav-item[data-view="meetings"].active{background:var(--blue);}
   .nav-item[data-view="facebook"].active{background:var(--pink);}
   .nav-item[data-view="line-oa"].active{background:var(--green);}
+  .nav-item.nav-dropdown{justify-content:space-between;}
+  .nav-item.nav-dropdown.active{background:var(--yellow);}
+  .nav-caret{width:12px;height:12px;flex-shrink:0;margin-left:4px;transition:transform .15s ease;}
+  .nav-dropdown.open .nav-caret{transform:rotate(180deg);}
+  .nav-submenu{display:none;flex-direction:column;gap:6px;margin:2px 0 4px 10px;padding-left:10px;border-left:2px dashed var(--ink-10,rgba(0,0,0,.14));}
+  .nav-submenu.open{display:flex;}
+  .nav-item.nav-subitem{font-size:13px;padding:7px 14px;}
   .sidebar-foot{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--grey-700);}
   .sidebar-foot .brand-name{display:none;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--ink);background:var(--white);font-weight:500;}
@@ -383,9 +390,23 @@
   <div class="layout">
   <aside class="side-nav" id="side-nav">
       <nav class="nav-pills">
-      <div class="nav-item active" data-view="dashboard">
+      <div class="nav-item nav-dropdown active open" id="nav-dashboard-toggle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
         <span>แดชบอร์ด</span>
+        <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="nav-submenu open" id="nav-dashboard-submenu">
+        <div class="nav-item nav-subitem active" data-view="dashboard">
+          <span>ภาพรวมสะสมแต้ม</span>
+        </div>
+        <div class="nav-item nav-subitem" data-view="facebook">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 1 0 1.2 19.93v-6.3H10.6v-2.9h2.6V10.4c0-2.6 1.55-4.03 3.9-4.03 1.13 0 2.31.2 2.31.2v2.55h-1.3c-1.28 0-1.68.8-1.68 1.62v1.94h2.86l-.46 2.9h-2.4v6.3A10 10 0 0 0 12 2Z"/></svg>
+          <span>Facebook</span>
+        </div>
+        <div class="nav-item nav-subitem" data-view="line-oa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="M8 20l2.5-2M12 20l2.5-2"/><circle cx="8.5" cy="11" r="1"/><circle cx="12" cy="11" r="1"/><circle cx="15.5" cy="11" r="1"/></svg>
+          <span>LINE OA</span>
+        </div>
       </div>
       <div class="nav-item" data-view="customers">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
@@ -398,14 +419,6 @@
       <div class="nav-item" data-view="meetings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
         <span>ปฏิทิน</span>
-      </div>
-      <div class="nav-item" data-view="facebook">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 1 0 1.2 19.93v-6.3H10.6v-2.9h2.6V10.4c0-2.6 1.55-4.03 3.9-4.03 1.13 0 2.31.2 2.31.2v2.55h-1.3c-1.28 0-1.68.8-1.68 1.62v1.94h2.86l-.46 2.9h-2.4v6.3A10 10 0 0 0 12 2Z"/></svg>
-        <span>Facebook</span>
-      </div>
-      <div class="nav-item" data-view="line-oa">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="M8 20l2.5-2M12 20l2.5-2"/><circle cx="8.5" cy="11" r="1"/><circle cx="12" cy="11" r="1"/><circle cx="15.5" cy="11" r="1"/></svg>
-        <span>LINE OA</span>
       </div>
       <div class="nav-item admin-only" data-view="users" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-.5a6.5 6.5 0 0 1 13 0v.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20v-.5a6.5 6.5 0 0 0-2.3-5"/></svg>
@@ -1123,22 +1136,43 @@ function buildCustomers(){
 }
 
 /* ============ NAVIGATION ============ */
-document.querySelectorAll('.nav-item').forEach(item=>{
-  item.addEventListener('click', ()=>{
-    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-    item.classList.add('active');
-    currentView = item.dataset.view;
-    document.querySelectorAll('.view').forEach(v=>v.style.display='none');
-    document.getElementById('view-'+currentView).style.display='block';
-    renderAll();
-    if(location.hash.replace('#','') !== currentView) history.replaceState(null,'','#'+currentView);
-  });
+// The dashboard-family views live under one collapsible "แดชบอร์ด" dropdown
+// in the side nav, so each other than its submenu keeps the dropdown open.
+const DASHBOARD_GROUP_VIEWS = ['dashboard','facebook','line-oa'];
+function setDashboardDropdownState(isOpen){
+  const toggle = document.getElementById('nav-dashboard-toggle');
+  const submenu = document.getElementById('nav-dashboard-submenu');
+  toggle.classList.toggle('open', isOpen);
+  submenu.classList.toggle('open', isOpen);
+}
+function navigateToView(view){
+  document.querySelectorAll('.nav-item[data-view]').forEach(i=>i.classList.remove('active'));
+  const target = document.querySelector('.nav-item[data-view="'+view+'"]');
+  if(target) target.classList.add('active');
+  const inDashboardGroup = DASHBOARD_GROUP_VIEWS.includes(view);
+  document.getElementById('nav-dashboard-toggle').classList.toggle('active', inDashboardGroup);
+  setDashboardDropdownState(inDashboardGroup);
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+  document.getElementById('view-'+currentView).style.display='block';
+  renderAll();
+  if(location.hash.replace('#','') !== currentView) history.replaceState(null,'','#'+currentView);
+}
+document.querySelectorAll('.nav-item[data-view]').forEach(item=>{
+  item.addEventListener('click', ()=> navigateToView(item.dataset.view));
+});
+document.getElementById('nav-dashboard-toggle').addEventListener('click', ()=>{
+  const submenu = document.getElementById('nav-dashboard-submenu');
+  setDashboardDropdownState(!submenu.classList.contains('open'));
 });
 function initHashView(){
   const h = (location.hash||'').replace('#','');
   const valid = ['dashboard','facebook','line-oa','customers','transactions','meetings'].concat(me && me.role==='admin' ? ['users'] : []);
   currentView = valid.includes(h) ? h : 'dashboard';
-  document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active', i.dataset.view===currentView));
+  document.querySelectorAll('.nav-item[data-view]').forEach(i=>i.classList.toggle('active', i.dataset.view===currentView));
+  const inDashboardGroup = DASHBOARD_GROUP_VIEWS.includes(currentView);
+  document.getElementById('nav-dashboard-toggle').classList.toggle('active', inDashboardGroup);
+  setDashboardDropdownState(inDashboardGroup);
   document.querySelectorAll('.view').forEach(v=>v.style.display='none');
   const el = document.getElementById('view-'+currentView);
   if(el) el.style.display='block';
