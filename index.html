@@ -95,6 +95,7 @@
   .nav-item[data-view="transactions"].active{background:var(--peach);}
   .nav-item[data-view="meetings"].active{background:var(--blue);}
   .nav-item[data-view="facebook"].active{background:var(--pink);}
+  .nav-item[data-view="line-oa"].active{background:var(--green);}
   .sidebar-foot{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--grey-700);}
   .sidebar-foot .brand-name{display:none;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--ink);background:var(--white);font-weight:500;}
@@ -402,6 +403,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 1 0 1.2 19.93v-6.3H10.6v-2.9h2.6V10.4c0-2.6 1.55-4.03 3.9-4.03 1.13 0 2.31.2 2.31.2v2.55h-1.3c-1.28 0-1.68.8-1.68 1.62v1.94h2.86l-.46 2.9h-2.4v6.3A10 10 0 0 0 12 2Z"/></svg>
         <span>Facebook</span>
       </div>
+      <div class="nav-item" data-view="line-oa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="14" rx="3"/><path d="M8 20l2.5-2M12 20l2.5-2"/><circle cx="8.5" cy="11" r="1"/><circle cx="12" cy="11" r="1"/><circle cx="15.5" cy="11" r="1"/></svg>
+        <span>LINE OA</span>
+      </div>
       <div class="nav-item admin-only" data-view="users" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-.5a6.5 6.5 0 0 1 13 0v.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20v-.5a6.5 6.5 0 0 0-2.3-5"/></svg>
         <span>ผู้ใช้งาน</span>
@@ -466,6 +471,32 @@
         <div id="fb-report-chart" style="margin-bottom:20px;"></div>
         <table><thead><tr><th>ช่วง</th><th>ทั้งหมด</th><th>ใหม่</th><th>ออร์แกนิก</th><th>Ads</th><th>ตอบกลับ</th><th>เวลาตอบกลับ</th></tr></thead>
         <tbody id="fb-report-table-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- LINE OA -->
+    <div class="view" id="view-line-oa" style="display:none;">
+      <div class="topbar">
+        <div>
+          <div class="kicker">LINE Official Account —</div>
+          <h1>แดชบอร์ด<em> LINE OA</em><span class="branch-chip"></span></h1>
+          <p class="subtitle">ข้อมูลจาก LINE Official Account Manager — ดึงตามคำขอ</p>
+        </div>
+      </div>
+      <div class="panel" id="line-oa-panel" style="display:none;">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <span>ข้อมูลล่าสุดจาก LINE OA<span class="branch-chip"></span></span>
+          <span id="line-oa-fetched-at" style="font-size:12px;font-weight:600;color:var(--grey-500,#888);"></span>
+        </div>
+        <div style="font-size:12.5px;color:var(--grey-500,#888);margin:-8px 0 14px;">ดึงข้อมูลตามคำขอ — บอก Claude ว่า "ดึงข้อมูล LINE OA ใหม่" เพื่ออัปเดต</div>
+        <div class="stat-grid" style="margin-bottom:16px;">
+          <div class="stat-card navy"><div class="stat-label">เพื่อนทั้งหมด (ทาร์เก็ตรีช)</div><div class="stat-value" id="line-friends">0</div><div class="stat-sub" id="line-friends-sub"></div><div class="curve-deco"></div></div>
+          <div class="stat-card orange"><div class="stat-label">แอคทีฟแชท</div><div class="stat-value" id="line-active-chats">0</div><div class="stat-sub">30 วันล่าสุด</div><div class="curve-deco"></div></div>
+          <div class="stat-card"><div class="stat-label">ข้อความที่ได้รับ</div><div class="stat-value" id="line-msg-received">0</div><div class="stat-sub">30 วันล่าสุด</div><div class="curve-deco"></div></div>
+          <div class="stat-card green"><div class="stat-label">ข้อความที่ส่ง (แชท)</div><div class="stat-value" id="line-msg-sent">0</div><div class="stat-sub">30 วันล่าสุด</div><div class="curve-deco"></div></div>
+        </div>
+        <table><thead><tr><th>ตัวชี้วัด</th><th>ค่า (30 วันล่าสุด)</th></tr></thead>
+        <tbody id="line-oa-table-body"></tbody></table>
       </div>
     </div>
 
@@ -1105,7 +1136,7 @@ document.querySelectorAll('.nav-item').forEach(item=>{
 });
 function initHashView(){
   const h = (location.hash||'').replace('#','');
-  const valid = ['dashboard','facebook','customers','transactions','meetings'].concat(me && me.role==='admin' ? ['users'] : []);
+  const valid = ['dashboard','facebook','line-oa','customers','transactions','meetings'].concat(me && me.role==='admin' ? ['users'] : []);
   currentView = valid.includes(h) ? h : 'dashboard';
   document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active', i.dataset.view===currentView));
   document.querySelectorAll('.view').forEach(v=>v.style.display='none');
@@ -1203,6 +1234,41 @@ async function loadAndRenderFbLiveSnapshot(){
     }).join('');
   }catch(e){
     console.error('load fb live snapshot failed', e);
+    panel.style.display = 'none';
+  }
+}
+async function loadAndRenderLineOa(){
+  const panel = document.getElementById('line-oa-panel');
+  try{
+    const { data, error } = await supa
+      .from('line_oa_snapshot')
+      .select('branch_name,period_days,friends_target_reach,friends_added,blocked,active_chats,messages_received,messages_sent,broadcast_sent,fetched_at')
+      .eq('branch_name', currentBranch)
+      .maybeSingle();
+    if(error) throw error;
+    if(!data){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+
+    document.getElementById('line-oa-fetched-at').textContent =
+      'ดึงล่าสุด: ' + new Date(data.fetched_at).toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'});
+
+    document.getElementById('line-friends').textContent = fmtNum(data.friends_target_reach);
+    document.getElementById('line-friends-sub').textContent = `เพิ่มเพื่อนสะสม ${fmtNum(data.friends_added)} · บล็อค ${fmtNum(data.blocked)}`;
+    document.getElementById('line-active-chats').textContent = fmtNum(data.active_chats);
+    document.getElementById('line-msg-received').textContent = fmtNum(data.messages_received);
+    document.getElementById('line-msg-sent').textContent = fmtNum(data.messages_sent);
+
+    document.getElementById('line-oa-table-body').innerHTML = `
+      <tr><td>เพื่อนทั้งหมด (ทาร์เก็ตรีช)</td><td>${fmtNum(data.friends_target_reach)}</td></tr>
+      <tr><td>เพิ่มเพื่อนสะสม (${data.period_days} วัน)</td><td>${fmtNum(data.friends_added)}</td></tr>
+      <tr><td>บล็อค</td><td>${fmtNum(data.blocked)}</td></tr>
+      <tr><td>แอคทีฟแชท</td><td>${fmtNum(data.active_chats)}</td></tr>
+      <tr><td>ข้อความที่ได้รับ (แชท)</td><td>${fmtNum(data.messages_received)}</td></tr>
+      <tr><td>ข้อความที่ส่ง (แชท)</td><td>${fmtNum(data.messages_sent)}</td></tr>
+      <tr><td>บรอดแคสต์ที่ส่ง</td><td>${fmtNum(data.broadcast_sent)}</td></tr>
+    `;
+  }catch(e){
+    console.error('load line oa snapshot failed', e);
     panel.style.display = 'none';
   }
 }
@@ -1509,6 +1575,7 @@ function renderAll(){
   if(currentView==='users'){ if(!appUsers.length) loadUsers(); else renderUsers(); }
   if(currentView==='dashboard') renderDashboard();
   if(currentView==='facebook'){ loadAndRenderFbReport(); loadAndRenderFbLiveSnapshot(); }
+  if(currentView==='line-oa') loadAndRenderLineOa();
   if(currentView==='customers') renderCustomers();
   if(currentView==='transactions'){ populateTypeFilter(); renderTransactions(); }
   if(currentView==='meetings') renderMeetingsCalendar();
